@@ -35,6 +35,8 @@ using namespace osp;
 using Magnum::Vector3;
 using Magnum::Matrix4;
 
+#if 0
+
 void MachineRCSController::propagate_output(WireOutput* output)
 {
 
@@ -152,13 +154,15 @@ void SysMachineRCSController::update_controls(ActiveScene& rScene)
     }
 }
 
-Machine& SysMachineRCSController::instantiate(ActiveEnt ent, PrototypeMachine config,
-    BlueprintMachine settings)
-{
-    return m_scene.reg_emplace<MachineRCSController>(ent);
-}
+//Machine& SysMachineRCSController::instantiate(ActiveEnt ent, PrototypeMachine config,
+//    BlueprintMachine settings)
+//{
+//    return m_scene.reg_emplace<MachineRCSController>(ent);
+//}
 
 Machine& SysMachineRCSController::get(ActiveEnt ent)
 {
     return m_scene.reg_get<MachineRCSController>(ent);
 }
+
+#endif

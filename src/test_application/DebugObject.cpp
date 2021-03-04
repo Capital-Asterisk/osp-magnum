@@ -58,22 +58,6 @@ using osp::universe::Universe;
 using osp::universe::UCompTransformTraj;
 using osp::universe::UCompVehicle;
 
-using adera::active::machines::MachineUserControl;
-
-
-//DebugObject::DebugObject(ActiveScene &scene, ActiveEnt ent) :
-//    m_scene(scene),
-//    m_ent(ent)
-//{
-
-//}
-
-//SysDebugObject::SysDebugObject(ActiveScene &scene) :
-//        m_scene(scene)
-//{
-
-//}
-
 
 DebugCameraController::DebugCameraController(ActiveScene &rScene, ActiveEnt ent)
  : DebugObject(rScene, ent)
@@ -207,8 +191,8 @@ void DebugCameraController::update_physics_post()
     // enable the first MachineUserControl
     ActiveEnt firstPart = *(rReg.get<ACompVehicle>(vehicle).m_parts.begin());
 
-    auto* pMUserCtrl = rReg.try_get<MachineUserControl>(firstPart);
-    if (pMUserCtrl != nullptr) { pMUserCtrl->enable(); }
+    //auto* pMUserCtrl = rReg.try_get<MachineUserControl>(firstPart);
+   // if (pMUserCtrl != nullptr) { pMUserCtrl->enable(); }
 
 
     Matrix4 &xform = m_scene.reg_get<ACompTransform>(m_ent).m_transform;
@@ -290,8 +274,8 @@ bool DebugCameraController::try_switch_vehicle()
         // Switching away, disable the first MachineUserControl
         ActiveEnt firstPart
                 = *(viewActive.get<ACompVehicle>(vehicle).m_parts.begin());
-        auto* pMUserCtrl = rReg.try_get<MachineUserControl>(firstPart);
-        if (pMUserCtrl != nullptr) { pMUserCtrl->disable(); }
+        //auto* pMUserCtrl = rReg.try_get<MachineUserControl>(firstPart);
+        //if (pMUserCtrl != nullptr) { pMUserCtrl->disable(); }
 
         prevVehiclePos = rReg.get<ACompTransform>(vehicle).m_transform.translation();
     }

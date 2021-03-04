@@ -32,6 +32,8 @@ using namespace adera::active::machines;
 using namespace osp::active;
 using namespace osp;
 
+#if 0
+
 const std::string SysMachineUserControl::smc_name = "UserControl";
 
 void MachineUserControl::propagate_output(WireOutput* output)
@@ -140,14 +142,16 @@ void SysMachineUserControl::update_sensor()
 
 
 
-Machine& SysMachineUserControl::instantiate(ActiveEnt ent,
-    PrototypeMachine config, BlueprintMachine settings)
-{
-    return m_scene.reg_emplace<MachineUserControl>(ent);
-}
+//Machine& SysMachineUserControl::instantiate(ActiveEnt ent,
+//    PrototypeMachine config, BlueprintMachine settings)
+//{
+//    return m_scene.reg_emplace<MachineUserControl>(ent);
+//}
 
 
 Machine& SysMachineUserControl::get(ActiveEnt ent)
 {
     return m_scene.reg_get<MachineUserControl>(ent);
 }
+
+#endif

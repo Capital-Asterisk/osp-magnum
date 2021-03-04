@@ -30,6 +30,8 @@
 namespace adera::active::machines
 {
 
+#if 0
+
 class MachineUserControl;
 
 /**
@@ -48,8 +50,8 @@ public:
 
     void update_sensor();
 
-    osp::active::Machine& instantiate(osp::active::ActiveEnt ent,
-        osp::PrototypeMachine config, osp::BlueprintMachine settings) override;
+//    osp::active::Machine& instantiate(osp::active::ActiveEnt ent,
+//        osp::PrototypeMachine config, osp::BlueprintMachine settings) override;
 
     osp::active::Machine& get(osp::active::ActiveEnt ent) override;
 
@@ -123,5 +125,7 @@ inline MachineUserControl& MachineUserControl::operator=(MachineUserControl&& mo
     m_woThrottle      = { this, std::move(move.m_woThrottle)      };
     return *this;
 }
+
+#endif
 
 } // namespace adera::active::machines

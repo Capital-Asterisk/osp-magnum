@@ -67,10 +67,10 @@ using osp::active::ACompTransform;
 using osp::active::ACompCamera;
 using osp::active::ACompFloatingOrigin;
 
-using adera::active::machines::SysMachineUserControl;
-using adera::active::machines::SysMachineRocket;
-using adera::active::machines::SysMachineRCSController;
-using adera::active::machines::SysMachineContainer;
+//using adera::active::machines::SysMachineUserControl;
+//using adera::active::machines::SysMachineRocket;
+//using adera::active::machines::SysMachineRCSController;
+//using adera::active::machines::SysMachineContainer;
 
 using planeta::universe::SatPlanet;
 
@@ -100,16 +100,6 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     osp::active::SysExhaustPlume::add_functions(rScene);
     planeta::active::SysPlanetA::add_functions(rScene);
     osp::active::SysFFGravity::add_functions(rScene);
-
-    // Register machines for that scene
-    rScene.system_machine_create<SysMachineUserControl>(pMagnumApp->get_input_handler());
-    rScene.system_machine_create<SysMachineRocket>();
-    rScene.system_machine_create<SysMachineRCSController>();
-    rScene.system_machine_create<SysMachineContainer>();
-
-    // Make active areas load vehicles and planets
-    //sysArea.activator_add(rUni.sat_type_find_index<SatVehicle>(), sysVehicle);
-    //sysArea.activator_add(rUni.sat_type_find_index<SatPlanet>(), sysPlanet);
 
     // create a Satellite with an ActiveArea
     Satellite areaSat = rUni.sat_create();

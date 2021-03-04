@@ -145,6 +145,8 @@ struct ShipResource
     uint64_t m_quantity;
 };
 
+#if 0
+
 class MachineContainer;
 
 class SysMachineContainer
@@ -157,10 +159,10 @@ public:
 
     static void update_containers(osp::active::ActiveScene& rScene);
 
-    osp::active::Machine& instantiate(
-        osp::active::ActiveEnt ent,
-        osp::PrototypeMachine config,
-        osp::BlueprintMachine settings) override;
+//    osp::active::Machine& instantiate(
+//        osp::active::ActiveEnt ent,
+//        osp::PrototypeMachine config,
+//        osp::BlueprintMachine settings) override;
 
     osp::active::Machine& get(osp::active::ActiveEnt ent) override;
 
@@ -243,5 +245,7 @@ inline MachineContainer& MachineContainer::operator=(MachineContainer&& move) no
     
     return *this;
 }
+
+#endif
 
 } // namespace adera::active::machines
