@@ -101,6 +101,7 @@ float g_time = 0;
 void SysExhaustPlume::update_plumes(ActiveScene& rScene)
 {
     g_time += rScene.get_time_delta_fixed();
+#if 0
 
     using adera::active::machines::MachineRocket;
     using ShaderInstance_t = adera::shader::PlumeShader::ACompPlumeShaderInstance;
@@ -139,4 +140,5 @@ void SysExhaustPlume::update_plumes(ActiveScene& rScene)
             visibility.m_state = false;
         }
     }
+#endif
 }

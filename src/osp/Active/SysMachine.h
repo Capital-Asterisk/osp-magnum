@@ -26,6 +26,8 @@
 
 #include "SysWire.h"
 
+#include <entt/core/family.hpp>
+
 #include <cstdint>
 #include <iostream>
 #include <vector>
@@ -33,14 +35,14 @@
 namespace osp::active
 {
 
+
+
 using Corrade::Containers::LinkedList;
 using Corrade::Containers::LinkedListItem;
 
 class ISysMachine;
 class Machine;
 
-using MapSysMachine_t = std::map<std::string, std::unique_ptr<ISysMachine>,
-                               std::less<> >;
 
 //-----------------------------------------------------------------------------
 
@@ -51,14 +53,6 @@ using MapSysMachine_t = std::map<std::string, std::unique_ptr<ISysMachine>,
  */
 struct ACompMachines
 {
-    struct PartMachine
-    {
-        PartMachine(ActiveEnt partEnt, MapSysMachine_t::iterator system) :
-            m_partEnt(partEnt), m_system(system) {}
-
-        ActiveEnt m_partEnt;
-        MapSysMachine_t::iterator m_system;
-    };
 
     ACompMachines() noexcept = default;
     ACompMachines(ACompMachines&& move) noexcept = default;
@@ -67,86 +61,11 @@ struct ACompMachines
     ACompMachines& operator=(ACompMachines const& move) = delete;
 
     //LinkedList<Machine> m_machines;
-    std::vector<PartMachine> m_machines;
+    //std::vector<PartMachine> m_machines;
+    int dummy;
 };
 
 //-----------------------------------------------------------------------------
-
-/**
- * Machine Base class. This should tecnically be an AComp Virtual functions are
- * only for wiring; this will probably change soon.
- *
- * Calling updates are handled by SysMachines
- */
-class Machine : public IWireElement
-{
-
-public:
-    constexpr Machine() noexcept = default;
-    constexpr Machine(bool enable) noexcept;
-    constexpr Machine(Machine&& move) noexcept = default;
-    constexpr Machine& operator=(Machine&& move) noexcept = default;
-
-    Machine(Machine const& copy) = delete;
-    Machine& operator=(Machine const& move) = delete;
-
-    constexpr void enable(void) noexcept;
-    constexpr void disable(void) noexcept;
-
-protected:
-    bool m_enable = false;
-};
-
-//-----------------------------------------------------------------------------
-
-class ISysMachine
-{
-public:
-
-    virtual ~ISysMachine() = default;
-
-    // TODO: make some config an argument
-    virtual Machine& instantiate(ActiveEnt ent,
-        PrototypeMachine config, BlueprintMachine settings) = 0;
-
-    virtual Machine& get(ActiveEnt ent) = 0;
-};
-
-//-----------------------------------------------------------------------------
-
-// Template for making Machine Systems
-template<class Derived, class MACH_T>
-class SysMachine : public ISysMachine
-{
-    friend Derived;
-
-public:
-    SysMachine(ActiveScene &scene) : m_scene(scene) {}
-    ~SysMachine() = default;
-
-    virtual Machine& instantiate(ActiveEnt ent, 
-        PrototypeMachine config,
-        BlueprintMachine settings) = 0;
-
-private:
-    ActiveScene &m_scene;
-};
-
-//-----------------------------------------------------------------------------
-
-constexpr Machine::Machine(bool enable) noexcept
- : m_enable(enable)
-{ }
-
-constexpr void Machine::enable(void) noexcept
-{
-    m_enable = true;
-}
-
-constexpr void Machine::disable(void) noexcept
-{
-    m_enable = false;
-}
 
 
 } // namespace osp::active

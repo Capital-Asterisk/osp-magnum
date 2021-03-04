@@ -32,6 +32,8 @@
 namespace adera::active::machines
 {
 
+#if 0
+
 /**
  *
  */
@@ -135,8 +137,8 @@ public:
      * @param ent The entity that owns the MachineRocket
      * @return The new MachineRocket instance
      */
-    osp::active::Machine& instantiate(osp::active::ActiveEnt ent,
-        osp::PrototypeMachine config, osp::BlueprintMachine settings) override;
+//    osp::active::Machine& instantiate(osp::active::ActiveEnt ent,
+//        osp::PrototypeMachine config, osp::BlueprintMachine settings) override;
 
     osp::active::Machine& get(osp::active::ActiveEnt ent) override;
 
@@ -189,5 +191,7 @@ inline MachineRocket& MachineRocket::operator=(MachineRocket&& move) noexcept
     m_powerOutput = std::exchange(move.m_powerOutput, 0.0f);
     return *this;
 }
+
+#endif
 
 } // namespace adera::active::machines

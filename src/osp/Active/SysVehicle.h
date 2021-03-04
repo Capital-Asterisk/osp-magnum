@@ -110,22 +110,6 @@ public:
 
 private:
 
-    /* Stores the association between a PrototypeObj entity and the indices of
-     * its owned machines in the PrototypePart array. Stores a const reference
-     * to a vector because the vector is filled with PrototypePart machine data
-     * by part_instantiate() and consumed by part_instantiate_machines(), all
-     * within the activate() function scope within which the index data is stable.
-     */
-    struct MachineDef
-    {
-        ActiveEnt m_machineOwner;
-        std::vector<uint32_t> const& m_machineIndices;
-
-        MachineDef(ActiveEnt owner, std::vector<uint32_t> const& indexArray)
-            : m_machineOwner(owner)
-            , m_machineIndices(indexArray)
-        {}
-    };
 
     /**
      * Compute the volume of a part
@@ -150,10 +134,10 @@ private:
      *
      * @return A pair containing the entity created and the list of part machines
      */
-    static std::pair<ActiveEnt, std::vector<MachineDef>> part_instantiate(
+    static ActiveEnt part_instantiate(
         ActiveScene& rScene,
-        PrototypePart& part,
-        BlueprintPart& blueprint,
+        PrototypePart const& part,
+        BlueprintPart const& blueprint,
         ActiveEnt rootParent);
 
     /**
@@ -169,11 +153,11 @@ private:
      * @param blueprintMachines [in] The master array of machine configs
      * @param machineIndices [in] The indices of the machines to add to entity
      */
-    static void add_machines_to_object(ActiveScene& rScene,
-        ActiveEnt partEnt, ActiveEnt entity,
-        std::vector<PrototypeMachine> const& protoMachines,
-        std::vector<BlueprintMachine> const& blueprintMachines,
-        std::vector<unsigned> const& machineIndices);
+//    static void add_machines_to_object(ActiveScene& rScene,
+//        ActiveEnt partEnt, ActiveEnt entity,
+//        std::vector<PrototypeMachine> const& protoMachines,
+//        std::vector<BlueprintMachine> const& blueprintMachines,
+//        std::vector<unsigned> const& machineIndices);
 
     /**
      * Instantiate all part machines
@@ -193,9 +177,9 @@ private:
      * @param part [in] The prototype part being created
      * @param partBP [in] The blueprint configs of the part being created
      */
-    static void part_instantiate_machines(ActiveScene& rScene, ActiveEnt partEnt,
-        std::vector<MachineDef> const& machineMapping,
-        PrototypePart const& part, BlueprintPart const& partBP);
+    //static void part_instantiate_machines(ActiveScene& rScene, ActiveEnt partEnt,
+    //    std::vector<MachineDef> const& machineMapping,
+    //    PrototypePart const& part, BlueprintPart const& partBP);
 
 };
 
