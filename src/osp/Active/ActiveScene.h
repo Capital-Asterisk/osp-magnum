@@ -33,12 +33,7 @@
 
 #include "../types.h"
 #include "activetypes.h"
-//#include "physics.h"
 
-//#include "SysDebugRender.h"
-//#include "SysNewton.h"
-#include "SysMachine.h"
-//#include "SysVehicle.h"
 #include "SysWire.h"
 #include "adera/SysExhaustPlume.h"
 
@@ -178,35 +173,6 @@ public:
     constexpr float get_time_delta_fixed() const { return 1.0f / 60.0f; }
 
     /**
-     * Add support for a new machine type by adding an ISysMachine
-     * @param name [in] Name to identify this machine type. This is used by part
-     *                  configs to idenfity which machines to use.
-     * @param sysMachine [in] ISysMachine to add. As this will transfer
-     *                        ownership, use std::move()
-     * @return Iterator to new machine added, or invalid iterator to end of map
-     *         if the name already exists.
-     */
-     MapSysMachine_t::iterator system_machine_add(std::string_view name,
-                            std::unique_ptr<ISysMachine> sysMachine);
-
-    /**
-     *
-     * @tparam T
-     */
-    template<class SYSMACH_T, typename... ARGS_T>
-    void system_machine_create(ARGS_T &&... args);
-
-
-    /**
-     * Find a registered SysMachine by name. This accesses a map.
-     * @param name [in] Name used as a key
-     * @return Iterator to specified SysMachine
-     */
-    MapSysMachine_t::iterator system_machine_find(std::string_view name);
-
-    bool system_machine_it_valid(MapSysMachine_t::iterator it);
-
-    /**
      *
      * @tparam T
      */
@@ -249,35 +215,15 @@ private:
     float m_timescale;
 
     UserInputHandler &m_userInput;
-    //std::vector<std::reference_wrapper<ISysMachine>> m_update_sensor;
-    //std::vector<std::reference_wrapper<ISysMachine>> m_update_physics;
 
     UpdateOrder_t m_updateOrder;
     RenderOrder_t m_renderOrder;
 
-    MapSysMachine_t m_sysMachines; // TODO: Put this in SysVehicle
     MapDynamicSys_t m_dynamicSys;
-
-    // TODO: base class and a list for Systems (or not)
-    //SysDebugRender m_render;
-    //SysPhysics m_physics;
-    //SysWire m_wire;
-    //SysVehicle m_vehicles;
-
-    //SysDebugObject m_debugObj;
-    //std::tuple<SysPhysics, SysWire, SysDebugObject> m_systems;
 
 };
 
 // move these to another file eventually
-
-
-template<class SYSMACH_T, typename... ARGS_T>
-void ActiveScene::system_machine_create(ARGS_T &&... args)
-{
-    system_machine_add(SYSMACH_T::smc_name,
-                       std::make_unique<SYSMACH_T>(*this, args...));
-}
 
 
 template<class DYNSYS_T, typename... ARGS_T>
