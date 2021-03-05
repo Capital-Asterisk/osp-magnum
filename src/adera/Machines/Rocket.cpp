@@ -243,28 +243,28 @@ void SysMachineRocket::attach_plume_effect(ActiveEnt ent)
     m_scene.reg_emplace<ACompExhaustPlume>(plumeNode, ent, plumeEffect);
 }
 
-Machine& SysMachineRocket::instantiate(ActiveEnt ent, PrototypeMachine config,
-    BlueprintMachine settings)
-{
-    // Read engine config
-    MachineRocket::Parameters params;
-    params.m_maxThrust = std::get<double>(config.m_config["thrust"]);
-    params.m_specImpulse = std::get<double>(config.m_config["Isp"]);
+//Machine& SysMachineRocket::instantiate(ActiveEnt ent, PrototypeMachine config,
+//    BlueprintMachine settings)
+//{
+//    // Read engine config
+//    MachineRocket::Parameters params;
+//    params.m_maxThrust = std::get<double>(config.m_config["thrust"]);
+//    params.m_specImpulse = std::get<double>(config.m_config["Isp"]);
 
-    std::string const& fuelIdent = std::get<std::string>(config.m_config["fueltype"]);
-    Path resPath = decompose_path(fuelIdent);
-    Package& pkg = m_scene.get_application().debug_find_package(resPath.prefix);
-    DependRes<ShipResourceType> fuel = pkg.get<ShipResourceType>(resPath.identifier);
+//    std::string const& fuelIdent = std::get<std::string>(config.m_config["fueltype"]);
+//    Path resPath = decompose_path(fuelIdent);
+//    Package& pkg = m_scene.get_application().debug_find_package(resPath.prefix);
+//    DependRes<ShipResourceType> fuel = pkg.get<ShipResourceType>(resPath.identifier);
 
-    std::vector<MachineRocket::input_t> inputs;
-    if (!fuel.empty())
-    {
-        inputs.push_back({std::move(fuel), 1.0f});
-    }
+//    std::vector<MachineRocket::input_t> inputs;
+//    if (!fuel.empty())
+//    {
+//        inputs.push_back({std::move(fuel), 1.0f});
+//    }
 
-    attach_plume_effect(ent);
-    return m_scene.reg_emplace<MachineRocket>(ent, std::move(params), std::move(inputs));
-}
+//    attach_plume_effect(ent);
+//    return m_scene.reg_emplace<MachineRocket>(ent, std::move(params), std::move(inputs));
+//}
 
 Machine& SysMachineRocket::get(ActiveEnt ent)
 {

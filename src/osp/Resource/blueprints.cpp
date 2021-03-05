@@ -57,7 +57,7 @@ BlueprintPart& BlueprintVehicle::add_part(
     // now we have a part index.
 
     // Create and default initialize object blueprint machines
-    size_t numMachines = prototype->get_machines().size();
+    size_t numMachines = prototype->m_partMachines.size();
     std::vector<BlueprintMachine> machineBPs;
     machineBPs.resize(numMachines);
 

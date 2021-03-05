@@ -108,9 +108,10 @@ private:
      * @return A machineIndexArray which is used by PrototypeObjects to store
      * the indices of the machineArray elements which belong to it
      */
-    static std::vector<unsigned> load_machines(tinygltf::Value const& extras,
-        std::vector<PrototypeMachine>& machineArray);
-
+    static void proto_load_machines(
+            PartEntity_t entity,
+            tinygltf::Value const& extras,
+            std::vector<PCompMachine>& rMachines);
     /**
      * Load only associated config files, and add resource paths to the package
      * But for now, this function just loads everything.
@@ -154,7 +155,7 @@ private:
                                Package& package,
                                std::string_view resPrefix,
                                PrototypePart& part,
-                               Magnum::UnsignedInt parentProtoIndex,
+                               PartEntity_t parentProtoIndex,
                                Magnum::UnsignedInt childGltfIndex);
 
 };

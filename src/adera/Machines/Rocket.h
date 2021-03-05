@@ -135,8 +135,8 @@ public:
      * @param ent The entity that owns the MachineRocket
      * @return The new MachineRocket instance
      */
-    osp::active::Machine& instantiate(osp::active::ActiveEnt ent,
-        osp::PrototypeMachine config, osp::BlueprintMachine settings) override;
+//    osp::active::Machine& instantiate(osp::active::ActiveEnt ent,
+//        osp::PrototypeMachine config, osp::BlueprintMachine settings) override;
 
     osp::active::Machine& get(osp::active::ActiveEnt ent) override;
 

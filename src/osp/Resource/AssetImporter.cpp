@@ -79,13 +79,15 @@ void osp::AssetImporter::load_sturdy_file(std::string_view filepath, Package& pk
     gltfImporter.close();
 }
 
-std::vector<uint32_t> AssetImporter::load_machines(tinygltf::Value const& extras,
-    std::vector<PrototypeMachine>& machineArray)
+void AssetImporter::proto_load_machines(
+        PartEntity_t entity,
+        tinygltf::Value const& extras,
+        std::vector<PCompMachine>& rMachines)
 {
     if (!extras.Has("machines"))
     {
         std::cout << "Error: no machines found!\n";
-        return {};
+        return;
     }
     tinygltf::Value const& machines = extras.Get("machines");
     std::cout << "JSON machines!\n";
@@ -109,8 +111,9 @@ std::vector<uint32_t> AssetImporter::load_machines(tinygltf::Value const& extras
             continue;
         }
 
-        PrototypeMachine machine;
-        machine.m_type = std::move(type);
+        PCompMachine &rMachine = rMachines.emplace_back();
+        rMachine.m_entity = entity;
+        rMachine.m_type = type;
 
         for (auto const& key : value.Keys())
         {
@@ -121,7 +124,7 @@ std::vector<uint32_t> AssetImporter::load_machines(tinygltf::Value const& extras
             case tinygltf::Type::REAL_TYPE:
             {
                 double val = v.Get<double>();
-                machine.m_config.emplace(key, val);
+                rMachine.m_config.emplace(key, val);
                 std::cout << val << " (real)\n";
                 break;
             }
@@ -129,14 +132,14 @@ std::vector<uint32_t> AssetImporter::load_machines(tinygltf::Value const& extras
             case tinygltf::Type::INT_TYPE:
             {
                 int val = v.Get<int>();
-                machine.m_config.emplace(key, val);
+                rMachine.m_config.emplace(key, val);
                 std::cout << val << " (int)\n";
                 break;
             }
             case tinygltf::Type::STRING_TYPE:
             {
                 std::string val = v.Get<std::string>();
-                machine.m_config.emplace(key, std::move(val));
+                rMachine.m_config.emplace(key, std::move(val));
                 std::cout << val << "(string)\n";
                 break;
             }
@@ -145,37 +148,28 @@ std::vector<uint32_t> AssetImporter::load_machines(tinygltf::Value const& extras
                 break;
             }
         }
-
-        machineIndices.emplace_back(machineArray.size());
-        machineArray.emplace_back(std::move(machine));
         /* TODO: eventually it would be nice to pre-allocate the PrototypePart's
          * machine array, but for now it doesn't seem worth it to pre-traverse
          * the whole part tree just for this purpose. If we do end up with a
          * more involved loading scheme, we can change this then.
          */
     }
-
-    return machineIndices;
 }
 
 void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
     Package& pkg, UnsignedInt id, std::string_view resPrefix)
 {
-    // It's a part
-    std::cout << "PART!\n";
 
     // Recursively add child nodes to part
     PrototypePart part;
-    proto_add_obj_recurse(gltfImporter, pkg, resPrefix, part, 0, id);
 
-    // TODO: remove if the machine array is pre-allocated
-    part.get_machines().shrink_to_fit();
+    proto_add_obj_recurse(gltfImporter, pkg, resPrefix, part, 0, id);
 
     // Parse extra properties
     tinygltf::Value const& extras = static_cast<tinygltf::Node const*>(
         gltfImporter.object3D(id)->importerState())->extras;
 
-    part.get_mass() = extras.Get("massdry").Get<double>();
+    //part.get_mass() = extras.Get("massdry").Get<double>();
 
     pkg.add<PrototypePart>(gltfImporter.object3DName(id), std::move(part));
 }
@@ -389,12 +383,13 @@ DependRes<Magnum::GL::Texture2D> AssetImporter::compile_tex(
 }
 
 //either an appendable package, or
-void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter, 
-                                           Package& package,
-                                           std::string_view resPrefix,
-                                           PrototypePart& part,
-                                           UnsignedInt parentProtoIndex,
-                                           UnsignedInt childGltfIndex)
+void AssetImporter::proto_add_obj_recurse(
+        TinyGltfImporter& gltfImporter,
+        Package& package,
+        std::string_view resPrefix,
+        PrototypePart& rPart,
+        PartEntity_t parentProtoIndex,
+        UnsignedInt childGltfIndex)
 {
     using Corrade::Containers::Pointer;
     using Corrade::Containers::Optional;
@@ -405,60 +400,61 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
     using Magnum::Trade::MaterialType;
     using Magnum::Trade::PbrMetallicRoughnessMaterialData;
 
+    PartEntity_t entity = rPart.m_entityCount++;
+
     // Add the object to the prototype
     Pointer<ObjectData3D> childData = gltfImporter.object3D(childGltfIndex);
-    std::vector<PrototypeObject>& protoObjects = part.get_objects();
+
+    PCompHierarchy &rHier = rPart.m_partHier.emplace_back();
+    rHier.m_parent = parentProtoIndex;
+    rHier.m_childCount = childData->children().size();
+
+    PCompTransform &rTransform = rPart.m_partTransform.emplace_back();
+    rTransform.m_translation = childData->translation();
+    rTransform.m_rotation = childData->rotation();
+    rTransform.m_scale = childData->scaling();
+
     const std::string& name = gltfImporter.object3DName(childGltfIndex);
+    PCompName &rName = rPart.m_partName.emplace_back();
+    rName.m_entity = entity;
+    rName.m_name = name;
 
-    // I think I've been doing too much C
-    PrototypeObject obj;
-    obj.m_parentIndex = parentProtoIndex;
-    obj.m_childCount = childData->children().size();
-    obj.m_translation = childData->translation();
-    obj.m_rotation = childData->rotation();
-    obj.m_scale = childData->scaling();
-    obj.m_type = ObjectType::NONE;
-    obj.m_name = name;
-
-    std::cout << "Adding obj to Part: " << name << "\n";
-    int meshID = childData->instance();
-
-    bool hasMesh = (
-            childData->instanceType() == ObjectInstanceType3D::Mesh
-            && meshID != -1);
-
-    if (name.compare(0, 4, "col_") == 0)
+    if (0 == name.compare(0, 4, "col_"))
     {
-        // It's a collider
-        obj.m_type = ObjectType::COLLIDER;
+        // Part is collider
 
         // do some stuff here
         tinygltf::Node const& node = *static_cast<tinygltf::Node const*>(
             childData->importerState());
         tinygltf::Value const& extras = node.extras;
 
+        // TODO: Add support different collider shapes here!
         std::string const& shapeName = extras.Get("shape").Get<std::string>();
+        // change this to some map too
         const phys::ECollisionShape shape = (shapeName == "cylinder")
             ? phys::ECollisionShape::CYLINDER : phys::ECollisionShape::BOX;
-        obj.m_objectData = ColliderData{shape};
 
-        std::cout << "obj: " << name << " is a \"" << shapeName << "\" collider\n";
+        PCompPrimativeCollider &rCollider = rPart.m_partCollider.emplace_back();
+        rCollider.m_entity = entity;
+        rCollider.m_shape = shape;
+
+        std::cout << "  * obj: " << name << " is a \"" << shapeName << "\" collider\n";
     }
-    else if (hasMesh)
+
+    int meshID = childData->instance();
+    bool hasMesh = (childData->instanceType() == ObjectInstanceType3D::Mesh
+                    && meshID != -1);
+
+    if (hasMesh)
     {
         // It's a drawable mesh
         const std::string& meshName =
             string_concat(resPrefix, gltfImporter.meshName(meshID));
-        std::cout << "obj: " << name << " uses mesh: " << meshName << "\n";
-        obj.m_type = ObjectType::MESH;
+        std::cout << "  * obj: " << name << " uses mesh: " << meshName << "\n";
 
-        // The way it's currently set up is that the mesh's names are the same
-        // as their resource paths. So the resource path is added to the part's
-        // list of strings, and the object's mesh is set to the index to that
-        // string.
-        obj.m_objectData = DrawableData{
-            static_cast<uint32_t>(part.get_strings().size())};
-        part.get_strings().push_back(meshName);
+        PCompDrawable &rDrawable = rPart.m_partDrawable.emplace_back();
+        rDrawable.m_entity = entity;
+        rDrawable.m_mesh = package.get<MeshData>(meshName);
 
         MeshObjectData3D& mesh = static_cast<MeshObjectData3D&>(*childData);
         Optional<MaterialData> mat = gltfImporter.material(mesh.material());
@@ -469,19 +465,17 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
 
             auto imgID = gltfImporter.texture(pbr.baseColorTexture())->image();
             std::string const& imgName = gltfImporter.image2DName(imgID);
-            std::cout << "Base Tex: " << imgName << "\n";
-            std::get<DrawableData>(obj.m_objectData).m_textures.push_back(
-                static_cast<uint32_t>(part.get_strings().size()));
-            part.get_strings().push_back(imgName);
+            std::cout << "    * Base Tex: " << imgName << "\n";
+            rDrawable.m_textures.emplace_back(package.get_or_reserve<ImageData2D>(imgName));
 
             if (pbr.hasNoneRoughnessMetallicTexture())
             {
                 imgID = gltfImporter.texture(pbr.metalnessTexture())->image();
-                std::cout << "Metal/rough texture: "
+                std::cout << "    * Metal/rough texture: "
                     << gltfImporter.image2DName(imgID) << "\n";
             } else
             {
-                std::cout << "No metal/rough texture found for " << name << "\n";
+                std::cout << "    * No metal/rough texture found for " << name << "\n";
             }
             
         } else
@@ -495,16 +489,13 @@ void AssetImporter::proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
         *static_cast<tinygltf::Node const*>(childData->importerState());
     if (node.extras.Has("machines"))
     {
-        obj.m_machineIndices = load_machines(node.extras, part.get_machines());
+        proto_load_machines(entity, node.extras, rPart.m_partMachines);
     }
-
-    UnsignedInt objIndex = protoObjects.size();
-    protoObjects.push_back(std::move(obj));
 
     for (UnsignedInt childId: childData->children())
     {
         proto_add_obj_recurse(
-                gltfImporter, package, resPrefix, part, objIndex, childId);
+                gltfImporter, package, resPrefix, rPart, entity, childId);
     }
 }
 

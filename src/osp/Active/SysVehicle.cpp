@@ -66,6 +66,8 @@ ActiveEnt SysVehicle::activate(ActiveScene &rScene, universe::Universe &rUni,
                           universe::Satellite tgtSat)
 {
 
+#if 0
+
     std::cout << "loadin a vehicle!\n";
 
     auto &loadMeVehicle = rUni.get_reg().get<universe::UCompVehicle>(tgtSat);
@@ -212,54 +214,22 @@ ActiveEnt SysVehicle::activate(ActiveScene &rScene, universe::Universe &rUni,
     //scene.dynamic_system_find<SysPhysics>().create_body(vehicleEnt);
 
     return vehicleEnt;
+#endif
+    return entt::null;
 }
 
-
-void SysVehicle::add_machines_to_object(ActiveScene& rScene,
-    ActiveEnt partEnt, ActiveEnt objEnt,
-    std::vector<PrototypeMachine> const& protoMachines,
-    std::vector<BlueprintMachine> const& blueprintMachines,
-    std::vector<uint32_t> const& machineIndices)
-{
-    if (machineIndices.empty()) { return; }
-
-    auto &compMachines =
-        rScene.get_registry().get_or_emplace<ACompMachines>(partEnt);
-
-    for (uint32_t i : machineIndices)
-    {
-        BlueprintMachine const& bpMachine = blueprintMachines[i];
-        PrototypeMachine const& protoMachine = protoMachines[i];
-
-        MapSysMachine_t::iterator sysMachine
-            = rScene.system_machine_find(protoMachine.m_type);
-
-        if (!(rScene.system_machine_it_valid(sysMachine)))
-        {
-            std::cout << "Machine type: " << protoMachine.m_type << " Not found\n";
-            continue;
-        }
-
-        // Instantiate the machine for the object
-        sysMachine->second->instantiate(objEnt, protoMachine, bpMachine);
-
-        // Add a PartMachine definition to the root part's ACompMachines
-        compMachines.m_machines.emplace_back(objEnt, sysMachine);
-    }
-}
-
-void SysVehicle::part_instantiate_machines(ActiveScene& rScene, ActiveEnt partEnt,
-    std::vector<MachineDef> const& machineMapping,
-    PrototypePart const& part, BlueprintPart const& partBP)
-{
-    std::vector<PrototypeMachine> const& protoMachines = part.get_machines();
-    std::vector<BlueprintMachine> const& bpMachines = partBP.m_machines;
-    for (auto const& obj : machineMapping)
-    {
-        add_machines_to_object(rScene, partEnt, obj.m_machineOwner,
-            protoMachines, bpMachines, obj.m_machineIndices);
-    }
-}
+//void SysVehicle::part_instantiate_machines(ActiveScene& rScene, ActiveEnt partEnt,
+//    std::vector<MachineDef> const& machineMapping,
+//    PrototypePart const& part, BlueprintPart const& partBP)
+//{
+//    std::vector<PrototypeMachine> const& protoMachines = part.get_machines();
+//    std::vector<BlueprintMachine> const& bpMachines = partBP.m_machines;
+//    for (auto const& obj : machineMapping)
+//    {
+//        add_machines_to_object(rScene, partEnt, obj.m_machineOwner,
+//            protoMachines, bpMachines, obj.m_machineIndices);
+//    }
+//}
 
 // Traverses the hierarchy and sums the volume of all ACompShapes it finds
 float SysVehicle::compute_hier_volume(ActiveScene& rScene, ActiveEnt part)
@@ -281,6 +251,7 @@ float SysVehicle::compute_hier_volume(ActiveScene& rScene, ActiveEnt part)
     return volume;
 }
 
+#if 0
 std::pair<ActiveEnt, std::vector<SysVehicle::MachineDef>> SysVehicle::part_instantiate(
     ActiveScene& rScene, PrototypePart& part, BlueprintPart& blueprint, ActiveEnt rootParent)
 {
@@ -435,6 +406,7 @@ std::pair<ActiveEnt, std::vector<SysVehicle::MachineDef>> SysVehicle::part_insta
     // return root object
     return {rootEntity, machineMapping};
 }
+#endif
 
 void SysVehicle::update_activate(ActiveScene &rScene)
 {

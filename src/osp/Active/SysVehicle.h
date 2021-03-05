@@ -174,11 +174,11 @@ private:
      * @param blueprintMachines [in] The master array of machine configs
      * @param machineIndices [in] The indices of the machines to add to entity
      */
-    static void add_machines_to_object(ActiveScene& rScene,
-        ActiveEnt partEnt, ActiveEnt entity,
-        std::vector<PrototypeMachine> const& protoMachines,
-        std::vector<BlueprintMachine> const& blueprintMachines,
-        std::vector<unsigned> const& machineIndices);
+//    static void add_machines_to_object(ActiveScene& rScene,
+//        ActiveEnt partEnt, ActiveEnt entity,
+//        std::vector<PrototypeMachine> const& protoMachines,
+//        std::vector<BlueprintMachine> const& blueprintMachines,
+//        std::vector<unsigned> const& machineIndices);
 
     /**
      * Instantiate all part machines

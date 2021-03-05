@@ -24,13 +24,17 @@
  */
 #pragma once
 
-#include <string>
-#include <array>
-#include <vector>
-#include <variant>
+#include "Resource.h"
 
 #include "../types.h"
 #include "osp/CommonPhysics.h"
+
+#include <Magnum/Trade/MeshData.h>
+#include <Magnum/Trade/ImageData.h>
+
+#include <string>
+#include <vector>
+#include <variant>
 
 namespace osp
 {
@@ -58,16 +62,16 @@ struct PCompTransform
 struct PCompDrawable
 {
     PartEntity_t m_entity;
-    uint32_t m_mesh;
-    std::vector<uint32_t> m_textures;
+    DependRes<Magnum::Trade::MeshData> m_mesh;
+    std::vector<DependRes<Magnum::Trade::ImageData2D>> m_textures;
 };
 
-struct PCompCollider
+struct PCompPrimativeCollider
 {
     PartEntity_t m_entity;
-    phys::ECollisionShape m_type;
-    unsigned m_meshData;
+    phys::ECollisionShape m_shape;
 };
+// if any fancy triangle mesh or convex hull is added, make a new PComp
 
 struct PCompMass
 {
@@ -103,7 +107,7 @@ struct PrototypePart
 
     // Optional
     std::vector<PCompDrawable> m_partDrawable;
-    std::vector<PCompCollider> m_partCollider;
+    std::vector<PCompPrimativeCollider> m_partCollider;
     std::vector<PCompMass> m_partMass;
     std::vector<PCompName> m_partName;
     std::vector<PCompMachine> m_partMachines;

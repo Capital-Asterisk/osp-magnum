@@ -152,11 +152,11 @@ void SysMachineRCSController::update_controls(ActiveScene& rScene)
     }
 }
 
-Machine& SysMachineRCSController::instantiate(ActiveEnt ent, PrototypeMachine config,
-    BlueprintMachine settings)
-{
-    return m_scene.reg_emplace<MachineRCSController>(ent);
-}
+//Machine& SysMachineRCSController::instantiate(ActiveEnt ent, PrototypeMachine config,
+//    BlueprintMachine settings)
+//{
+//    return m_scene.reg_emplace<MachineRCSController>(ent);
+//}
 
 Machine& SysMachineRCSController::get(ActiveEnt ent)
 {

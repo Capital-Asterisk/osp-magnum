@@ -103,10 +103,7 @@ void testapp::test_flight(std::unique_ptr<OSPMagnum>& pMagnumApp,
     scene.dynamic_system_create<osp::active::SysFFGravity>();
 
     // Register machines for that scene
-    scene.system_machine_create<SysMachineUserControl>(pMagnumApp->get_input_handler());
-    scene.system_machine_create<SysMachineRocket>();
-    scene.system_machine_create<SysMachineRCSController>();
-    scene.system_machine_create<SysMachineContainer>();
+
 
     // Make active areas load vehicles and planets
     //sysArea.activator_add(rUni.sat_type_find_index<SatVehicle>(), sysVehicle);

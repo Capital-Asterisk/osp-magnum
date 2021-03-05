@@ -140,11 +140,11 @@ void SysMachineUserControl::update_sensor()
 
 
 
-Machine& SysMachineUserControl::instantiate(ActiveEnt ent,
-    PrototypeMachine config, BlueprintMachine settings)
-{
-    return m_scene.reg_emplace<MachineUserControl>(ent);
-}
+//Machine& SysMachineUserControl::instantiate(ActiveEnt ent,
+//    PrototypeMachine config, BlueprintMachine settings)
+//{
+//    return m_scene.reg_emplace<MachineUserControl>(ent);
+//}
 
 
 Machine& SysMachineUserControl::get(ActiveEnt ent)
