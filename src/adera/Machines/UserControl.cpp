@@ -32,6 +32,8 @@ using namespace adera::active::machines;
 using namespace osp::active;
 using namespace osp;
 
+#if 0
+
 const std::string SysMachineUserControl::smc_name = "UserControl";
 
 void MachineUserControl::propagate_output(WireOutput* output)
@@ -151,3 +153,5 @@ Machine& SysMachineUserControl::get(ActiveEnt ent)
 {
     return m_scene.reg_get<MachineUserControl>(ent);
 }
+
+#endif

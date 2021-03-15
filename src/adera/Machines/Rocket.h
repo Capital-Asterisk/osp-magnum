@@ -32,6 +32,8 @@
 namespace adera::active::machines
 {
 
+#if 0
+
 /**
  *
  */
@@ -189,5 +191,7 @@ inline MachineRocket& MachineRocket::operator=(MachineRocket&& move) noexcept
     m_powerOutput = std::exchange(move.m_powerOutput, 0.0f);
     return *this;
 }
+
+#endif
 
 } // namespace adera::active::machines

@@ -50,7 +50,7 @@ using osp::active::ACompVehicle;
 
 using osp::active::SysAreaAssociate;
 
-using adera::active::machines::MachineUserControl;
+//using adera::active::machines::MachineUserControl;
 
 
 //DebugObject::DebugObject(ActiveScene &scene, ActiveEnt ent) :
@@ -164,8 +164,8 @@ void DebugCameraController::update_physics_post()
             // disable the first MachineUserControl because switching away
             ActiveEnt firstPart
                     = *(view.get<ACompVehicle>(m_orbiting).m_parts.begin());
-            auto* pMUserCtrl = rReg.try_get<MachineUserControl>(firstPart);
-            if (pMUserCtrl != nullptr) { pMUserCtrl->disable(); }
+            //auto* pMUserCtrl = rReg.try_get<MachineUserControl>(firstPart);
+            //if (pMUserCtrl != nullptr) { pMUserCtrl->disable(); }
         }
 
         if (it == view.end() || it == view.begin())
@@ -188,8 +188,8 @@ void DebugCameraController::update_physics_post()
             ActiveEnt firstPart
                     = *(view.get<ACompVehicle>(m_orbiting).m_parts.begin());
 
-            auto* pMUserCtrl = rReg.try_get<MachineUserControl>(firstPart);
-            if (pMUserCtrl != nullptr) { pMUserCtrl->enable(); }
+            //auto* pMUserCtrl = rReg.try_get<MachineUserControl>(firstPart);
+            //if (pMUserCtrl != nullptr) { pMUserCtrl->enable(); }
         }
 
         // pick next entity, or first entity in scene

@@ -44,6 +44,8 @@ using namespace adera::active::machines;
 using namespace osp::active;
 using namespace osp;
 
+#if 0
+
 void MachineRocket::propagate_output(WireOutput* output)
 {
 
@@ -291,3 +293,6 @@ constexpr float SysMachineRocket::resource_mass_flow_rate(MachineRocket const& m
 
     return massFlowRateTot * resource.m_massRateFraction;
 }
+
+
+#endif

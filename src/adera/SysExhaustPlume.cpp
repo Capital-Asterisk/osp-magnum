@@ -97,6 +97,7 @@ void SysExhaustPlume::initialize_plume(ActiveEnt node)
 
 void SysExhaustPlume::update_plumes(ActiveScene& rScene)
 {
+#if 0
     m_time += m_scene.get_time_delta_fixed();
 
     using adera::active::machines::MachineRocket;
@@ -136,4 +137,5 @@ void SysExhaustPlume::update_plumes(ActiveScene& rScene)
             visibility.m_state = false;
         }
     }
+#endif
 }

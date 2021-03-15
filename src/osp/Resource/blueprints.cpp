@@ -60,7 +60,7 @@ BlueprintPart& BlueprintVehicle::add_part(
     size_t numMachines = prototype->m_partMachines.size();
     std::vector<BlueprintMachine> machineBPs;
     machineBPs.resize(numMachines);
-
+/*
     BlueprintPart blueprint
     {
         static_cast<uint32_t>(partIndex),
@@ -71,7 +71,7 @@ BlueprintPart& BlueprintVehicle::add_part(
     };
 
     m_blueprints.push_back(std::move(blueprint));
-
+*/
     return m_blueprints.back();
 }
 

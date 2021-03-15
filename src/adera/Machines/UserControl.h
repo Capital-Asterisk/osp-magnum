@@ -30,6 +30,8 @@
 namespace adera::active::machines
 {
 
+#if 0
+
 class MachineUserControl;
 
 /**
@@ -123,5 +125,7 @@ inline MachineUserControl& MachineUserControl::operator=(MachineUserControl&& mo
     m_woThrottle      = { this, std::move(move.m_woThrottle)      };
     return *this;
 }
+
+#endif
 
 } // namespace adera::active::machines

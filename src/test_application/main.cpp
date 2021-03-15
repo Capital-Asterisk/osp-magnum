@@ -412,12 +412,12 @@ void debug_print_machines()
         std::cout << "[" << int(ent) << "]: " << hier.m_name << "\n";
 
         auto& machines = scene.reg_get<ACompMachines>(ent);
-        for (ACompMachines::PartMachine const& mach : machines.m_machines)
-        {
-            ActiveEnt machEnt = mach.m_partEnt;
-            std::string const& sysName = mach.m_system->first;
-            std::cout << "  ->[" << int(machEnt) << "]: " << sysName << "\n";
-        }
+        //for (ACompMachines::PartMachine const& mach : machines.m_machines)
+        //{
+        //    ActiveEnt machEnt = mach.m_partEnt;
+        //    std::string const& sysName = mach.m_system->first;
+        //    std::cout << "  ->[" << int(machEnt) << "]: " << sysName << "\n";
+        //}
     }
 }
 

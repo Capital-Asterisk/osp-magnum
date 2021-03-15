@@ -218,8 +218,8 @@ osp::universe::Satellite testapp::debug_add_part_vehicle(
     blueprint.add_part(capsule, Vector3{0}, idRot, scl);
 
     auto& fuselageBP = blueprint.add_part(fuselage, cfOset, idRot, scl);
-    fuselageBP.m_machines[1].m_config.emplace("resourcename", "lzdb:fuel");
-    fuselageBP.m_machines[1].m_config.emplace("fuellevel", 0.5);
+    //fuselageBP.m_machines[1].m_config.emplace("resourcename", "lzdb:fuel");
+    //fuselageBP.m_machines[1].m_config.emplace("fuellevel", 0.5);
 
     auto& engBP = blueprint.add_part(engine, cfOset + feOset, idRot, scl);
 

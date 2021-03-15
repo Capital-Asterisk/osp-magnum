@@ -145,6 +145,8 @@ struct ShipResource
     uint64_t m_quantity;
 };
 
+#if 0
+
 class MachineContainer;
 
 class SysMachineContainer
@@ -243,5 +245,7 @@ inline MachineContainer& MachineContainer::operator=(MachineContainer&& move) no
     
     return *this;
 }
+
+#endif
 
 } // namespace adera::active::machines

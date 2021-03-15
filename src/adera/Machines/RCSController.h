@@ -1,6 +1,6 @@
 /**
  * Open Space Program
- * Copyright © 2019-2020 Open Space Program Project
+ * Copyright ? 2019-2020 Open Space Program Project
  *
  * MIT License
  *
@@ -31,6 +31,8 @@
 namespace adera::active::machines
 {
 
+#if 0
+
 class MachineRCSController;
 
 /**
@@ -51,10 +53,10 @@ public:
 
     /**
      * Primary system update function
-     * 
+     *
      * Iterates over MachineRCSControllers and issues throttle commands to the
      * associated MachineRocket thrusters via wire
-     * 
+     *
      * @param rScene [in] - The scene to update
      */
     static void update_controls(osp::active::ActiveScene &rScene);
@@ -67,13 +69,13 @@ public:
 private:
     /**
      * Command-thrust influence calculator
-     * 
+     *
      * Given a thruster's orientation and position relative to ship center of
      * mass, and a translation and rotation command, calculates how much
      * influence the thruster has on the commanded motion. Called on all
      * vehicle RCS thrusters to decide which are necessary to respond to the
      * maneuver command.
-     * 
+     *
      * @param posOset   [in] The position of the thruster relative to the ship CoM
      * @param direction [in] Direction that the thruster points
      * @param cmdTransl [in] Commanded translation vector
@@ -97,7 +99,7 @@ public:
     ~MachineRCSController() = default;
 
     void propagate_output(osp::active::WireOutput *output) override;
-    
+
     osp::active::WireInput* request_input(osp::WireInPort port) override;
     osp::active::WireOutput* request_output(osp::WireOutPort port) override;
 
@@ -133,5 +135,7 @@ inline MachineRCSController& MachineRCSController::operator=(MachineRCSControlle
     m_rigidBody = std::exchange(move.m_rigidBody, entt::null);
     return *this;
 }
+
+#endif
 
 } // adera::active::machines

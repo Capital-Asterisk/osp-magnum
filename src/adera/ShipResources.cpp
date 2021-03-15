@@ -30,6 +30,8 @@ using namespace osp;
 using namespace osp::active;
 using namespace adera::active::machines;
 
+#if 0
+
 /* MachineContainer */
 
 void MachineContainer::propagate_output(WireOutput* output)
@@ -128,3 +130,5 @@ Machine& SysMachineContainer::get(ActiveEnt ent)
 {
     return m_scene.reg_get<MachineContainer>(ent);
 }
+
+#endif

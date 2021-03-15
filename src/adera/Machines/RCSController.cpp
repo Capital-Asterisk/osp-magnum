@@ -35,6 +35,8 @@ using namespace osp;
 using Magnum::Vector3;
 using Magnum::Matrix4;
 
+#if 0
+
 void MachineRCSController::propagate_output(WireOutput* output)
 {
 
@@ -162,3 +164,5 @@ Machine& SysMachineRCSController::get(ActiveEnt ent)
 {
     return m_scene.reg_get<MachineRCSController>(ent);
 }
+
+#endif

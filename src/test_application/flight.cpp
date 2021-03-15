@@ -67,10 +67,10 @@ using osp::active::ACompTransform;
 using osp::active::ACompCamera;
 using osp::active::ACompFloatingOrigin;
 
-using adera::active::machines::SysMachineUserControl;
-using adera::active::machines::SysMachineRocket;
-using adera::active::machines::SysMachineRCSController;
-using adera::active::machines::SysMachineContainer;
+//using adera::active::machines::SysMachineUserControl;
+//using adera::active::machines::SysMachineRocket;
+//using adera::active::machines::SysMachineRCSController;
+//using adera::active::machines::SysMachineContainer;
 
 using planeta::universe::SatPlanet;
 
