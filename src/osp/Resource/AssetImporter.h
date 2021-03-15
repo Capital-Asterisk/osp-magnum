@@ -52,7 +52,8 @@ PluginManager;
 public:
     AssetImporter() {}
 
-    static void load_sturdy_file(std::string_view filepath, Package& package);
+    static void load_sturdy_file(std::string_view filepath,
+                                 Package& rMachinePkg, Package& package);
 
     /**
      * Load an image from disk at the specified filepath
@@ -109,9 +110,9 @@ private:
      * the indices of the machineArray elements which belong to it
      */
     static void proto_load_machines(
-            PartEntity_t entity,
+            Package& rMachinePackage,
             tinygltf::Value const& extras,
-            std::vector<PCompMachine>& rMachines);
+            std::vector<PrototypeMachine>& rMachines);
     /**
      * Load only associated config files, and add resource paths to the package
      * But for now, this function just loads everything.
@@ -122,7 +123,7 @@ private:
      * @param package [out] Package to put resource paths into
      */
     static void load_sturdy(TinyGltfImporter& gltfImporter,
-            std::string_view resPrefix, Package& package);
+            std::string_view resPrefix, Package& rMachinePackage, Package& package);
 
     /**
      * Load a part from a sturdy
@@ -135,8 +136,12 @@ private:
      * @param id [in] ID of node containing part information
      * @param resPrefix [in] Unique prefix for mesh names (see load_sturdy())
      */
-    static void load_part(TinyGltfImporter& gltfImporter,
-        Package& package, Magnum::UnsignedInt id, std::string_view resPrefix);
+    static void load_part(
+            TinyGltfImporter& gltfImporter,
+            Package& rMachinePackage,
+            Package& package,
+            Magnum::UnsignedInt id,
+            std::string_view resPrefix);
 
     /**
      * Load a plume object from a sturdy
@@ -151,12 +156,14 @@ private:
     static void load_plume(TinyGltfImporter& gltfImporter,
         Package& package, Magnum::UnsignedInt id, std::string_view resPrefix);
 
-    static void proto_add_obj_recurse(TinyGltfImporter& gltfImporter,
-                               Package& package,
-                               std::string_view resPrefix,
-                               PrototypePart& part,
-                               PartEntity_t parentProtoIndex,
-                               Magnum::UnsignedInt childGltfIndex);
+    static void proto_add_obj_recurse(
+            TinyGltfImporter& gltfImporter,
+            Package& rMachinePackage,
+            Package& package,
+            std::string_view resPrefix,
+            PrototypePart& part,
+            PartEntity_t parentProtoIndex,
+            Magnum::UnsignedInt childGltfIndex);
 
 };
 

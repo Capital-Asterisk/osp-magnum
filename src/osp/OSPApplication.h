@@ -58,6 +58,8 @@ public:
      */
     Package& debug_find_package(std::string_view prefix);
 
+    Package& get_global_package() { return m_packages.begin()->second; }
+
     size_t debug_num_packages() const { return m_packages.size(); }
 
     universe::Universe& get_universe() { return m_universe; }

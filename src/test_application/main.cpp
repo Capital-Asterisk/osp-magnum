@@ -34,6 +34,7 @@
 
 #include <osp/Satellites/SatVehicle.h>
 
+
 #include <adera/ShipResources.h>
 #include <adera/Shaders/Phong.h>
 
@@ -250,6 +251,10 @@ void load_a_bunch_of_stuff()
     // Create a new package
     osp::Package lazyDebugPack("lzdb", "lazy-debug");
 
+    // Register machines
+    lazyDebugPack.add<osp::RegisteredMachine>("RCSController", 0);
+    lazyDebugPack.add<osp::RegisteredMachine>("Rocket", 1);
+    lazyDebugPack.add<osp::RegisteredMachine>("UserControl", 2);
 
 
     // Load sturdy glTF files
@@ -268,7 +273,7 @@ void load_a_bunch_of_stuff()
     for (auto meshName : meshes)
     {
         osp::AssetImporter::load_sturdy_file(
-            osp::string_concat(datapath, meshName), lazyDebugPack);
+            osp::string_concat(datapath, meshName), lazyDebugPack, lazyDebugPack);
     }
 
     // Load noise textures

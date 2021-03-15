@@ -22,6 +22,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+#include "Package.h"
+#include "AssetImporter.h"
+#include "osp/string_concat.h"
+#include "adera/Plume.h"
+#include "machines.h"
+
 #include <iostream>
 
 #include <Corrade/Containers/Optional.h>
@@ -42,10 +49,7 @@
 
 #include <MagnumExternal/TinyGltf/tiny_gltf.h>
 
-#include "Package.h"
-#include "AssetImporter.h"
-#include "osp/string_concat.h"
-#include "adera/Plume.h"
+
 
 using Corrade::Containers::Optional;
 using Magnum::Trade::ImageData2D;
@@ -58,7 +62,7 @@ using Magnum::UnsignedInt;
 namespace osp
 {
 
-void osp::AssetImporter::load_sturdy_file(std::string_view filepath, Package& pkg)
+void osp::AssetImporter::load_sturdy_file(std::string_view filepath, Package& rMachinePkg, Package& pkg)
 {
     PluginManager pluginManager;
     TinyGltfImporter gltfImporter{pluginManager};
@@ -74,15 +78,15 @@ void osp::AssetImporter::load_sturdy_file(std::string_view filepath, Package& pk
     std::string dataResourceName =
         string_concat(filepath.substr(0, filepath.find('.')), ":");
 
-    load_sturdy(gltfImporter, dataResourceName, pkg);
+    load_sturdy(gltfImporter, dataResourceName, rMachinePkg, pkg);
 
     gltfImporter.close();
 }
 
 void AssetImporter::proto_load_machines(
-        PartEntity_t entity,
+        Package& rMachinePkg,
         tinygltf::Value const& extras,
-        std::vector<PCompMachine>& rMachines)
+        std::vector<PrototypeMachine>& rMachines)
 {
     if (!extras.Has("machines"))
     {
@@ -111,9 +115,18 @@ void AssetImporter::proto_load_machines(
             continue;
         }
 
-        PCompMachine &rMachine = rMachines.emplace_back();
-        rMachine.m_entity = entity;
-        rMachine.m_type = type;
+
+        //rMachine.m_entity = entity;
+
+        // Resolve machine type
+        DependRes<RegisteredMachine> machineType = rMachinePkg.get<RegisteredMachine>(type);
+        if (machineType.empty())
+        {
+            std::cout << "Machine not found: " << type << "\n";
+            continue; // machine type not found
+        }
+        PrototypeMachine &rMachine = rMachines.emplace_back();
+        rMachine.m_type = machineType->m_id;
 
         for (auto const& key : value.Keys())
         {
@@ -156,20 +169,30 @@ void AssetImporter::proto_load_machines(
     }
 }
 
-void osp::AssetImporter::load_part(TinyGltfImporter& gltfImporter,
-    Package& pkg, UnsignedInt id, std::string_view resPrefix)
+void osp::AssetImporter::load_part(
+        TinyGltfImporter& gltfImporter,
+        Package& rMachinePkg,
+        Package& pkg,
+        UnsignedInt id,
+        std::string_view resPrefix)
 {
 
     // Recursively add child nodes to part
     PrototypePart part;
 
-    proto_add_obj_recurse(gltfImporter, pkg, resPrefix, part, 0, id);
+
+    proto_add_obj_recurse(gltfImporter, rMachinePkg, pkg, resPrefix, part, 0, id);
 
     // Parse extra properties
     tinygltf::Value const& extras = static_cast<tinygltf::Node const*>(
         gltfImporter.object3D(id)->importerState())->extras;
 
-    //part.get_mass() = extras.Get("massdry").Get<double>();
+    // TODO: individual glTF nodes can now have masses, but there's no
+    //       implementation for it yet. This is a workaround to keep the old
+    //       system
+    PCompMass totalMassTemporary = part.m_partMass.emplace_back();
+    totalMassTemporary.m_entity = 0;
+    totalMassTemporary.m_mass = extras.Get("massdry").Get<double>();
 
     pkg.add<PrototypePart>(gltfImporter.object3DName(id), std::move(part));
 }
@@ -228,8 +251,11 @@ void osp::AssetImporter::load_plume(TinyGltfImporter& gltfImporter,
    name (or any other resource that has the same problem) that is used
    internally to avoid name conflicts.
 */
-void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter,
-        std::string_view resPrefix, Package& pkg)
+void osp::AssetImporter::load_sturdy(
+        TinyGltfImporter& gltfImporter,
+        std::string_view resPrefix,
+        Package& rMachinePkg,
+        Package& pkg)
 {
     std::cout << "Found " << gltfImporter.object3DCount() << " nodes\n";
     Optional<SceneData> sceneData = gltfImporter.scene(gltfImporter.defaultScene());
@@ -248,7 +274,7 @@ void osp::AssetImporter::load_sturdy(TinyGltfImporter& gltfImporter,
 
         if (nodeName.compare(0, 5, "part_") == 0)
         {
-            load_part(gltfImporter, pkg, childID, resPrefix);
+            load_part(gltfImporter, rMachinePkg, pkg, childID, resPrefix);
         }
         else if (nodeName.compare(0, 6, "plume_") == 0)
         {
@@ -385,6 +411,7 @@ DependRes<Magnum::GL::Texture2D> AssetImporter::compile_tex(
 //either an appendable package, or
 void AssetImporter::proto_add_obj_recurse(
         TinyGltfImporter& gltfImporter,
+        Package& rMachinePkg,
         Package& package,
         std::string_view resPrefix,
         PrototypePart& rPart,
@@ -454,7 +481,7 @@ void AssetImporter::proto_add_obj_recurse(
 
         PCompDrawable &rDrawable = rPart.m_partDrawable.emplace_back();
         rDrawable.m_entity = entity;
-        rDrawable.m_mesh = package.get<MeshData>(meshName);
+        rDrawable.m_mesh = package.get_or_reserve<MeshData>(meshName);
 
         MeshObjectData3D& mesh = static_cast<MeshObjectData3D&>(*childData);
         Optional<MaterialData> mat = gltfImporter.material(mesh.material());
@@ -489,13 +516,13 @@ void AssetImporter::proto_add_obj_recurse(
         *static_cast<tinygltf::Node const*>(childData->importerState());
     if (node.extras.Has("machines"))
     {
-        proto_load_machines(entity, node.extras, rPart.m_partMachines);
+        proto_load_machines(rMachinePkg, node.extras, rPart.m_protoMachines);
     }
 
     for (UnsignedInt childId: childData->children())
     {
         proto_add_obj_recurse(
-                gltfImporter, package, resPrefix, rPart, entity, childId);
+                gltfImporter, rMachinePkg, package, resPrefix, rPart, entity, childId);
     }
 }
 

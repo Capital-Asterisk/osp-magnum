@@ -25,6 +25,7 @@
 #pragma once
 
 #include "Resource.h"
+#include "machines.h"
 
 #include "../types.h"
 #include "osp/CommonPhysics.h"
@@ -85,10 +86,11 @@ struct PCompName
     std::string m_name;
 };
 
-struct PCompMachine
+struct PrototypeMachine
 {
-    PartEntity_t m_entity;
-    std::string m_type;
+    //PartEntity_t m_entity;
+    //std::string m_type;
+    machine_id_t m_type;
     std::map<std::string, config_node_t> m_config;
 };
 
@@ -99,7 +101,7 @@ struct PCompMachine
 struct PrototypePart
 {
 
-    PartEntity_t m_entityCount;
+    PartEntity_t m_entityCount{0};
 
     // Parallel
     std::vector<PCompHierarchy> m_partHier;
@@ -110,7 +112,8 @@ struct PrototypePart
     std::vector<PCompPrimativeCollider> m_partCollider;
     std::vector<PCompMass> m_partMass;
     std::vector<PCompName> m_partName;
-    std::vector<PCompMachine> m_partMachines;
+
+    std::vector<PrototypeMachine> m_protoMachines;
 };
 
 }

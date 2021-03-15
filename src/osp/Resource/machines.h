@@ -11,7 +11,11 @@ using machine_id_t = uint32_t;
 
 struct RegisteredMachine
 {
+    RegisteredMachine(machine_id_t id) : m_id(id) {}
+
     machine_id_t m_id;
+
+    // TODO: possibly put some info on fields for the config parser
 };
 
 }
