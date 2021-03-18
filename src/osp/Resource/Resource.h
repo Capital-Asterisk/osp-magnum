@@ -41,10 +41,7 @@ struct Resource
     Resource(reserve_tag)
      : m_data()
     { }
-    Resource(construct_tag)
-     : m_data(TYPE_T())
-    { }
-    Resource(construct_tag, TYPE_T&& data)
+    Resource(construct_tag, TYPE_T&& data = {})
      : m_data(std::move(data))
     { }
     Resource(Resource&& move) = default;
