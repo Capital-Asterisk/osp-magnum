@@ -44,7 +44,7 @@ ActiveEnt SysHierarchy::create_child(ActiveScene& rScene, ActiveEnt parent,
 
     if (!name.empty())
     {
-        rScene.reg_emplace<ACompName>(child, name);
+        rScene.reg_emplace<ACompName>(child, create_shared_string(name));
     }
 
     set_parent_child(rScene, parent, child);

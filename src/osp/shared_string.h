@@ -80,18 +80,18 @@ class basic_shared_string : public std::basic_string_view<CHAR_T>
     static_assert(std::is_nothrow_destructible_v<ViewBase_t>);
 
 public:
-    using traits_type            = ViewBase_t::traits_type;
-    using value_type             = ViewBase_t::value_type;
-    using pointer                = ViewBase_t::pointer;
-    using const_pointer          = ViewBase_t::const_pointer;
-    using reference              = ViewBase_t::reference;
-    using const_reference        = ViewBase_t::const_reference;
-    using const_iterator         = ViewBase_t::const_iterator;
-    using iterator               = ViewBase_t::iterator;
-    using const_reverse_iterator = ViewBase_t::const_reverse_iterator;
-    using reverse_iterator       = ViewBase_t::reverse_iterator;
-    using size_type              = ViewBase_t::size_type;
-    using difference_type        = ViewBase_t::difference_type;
+    using traits_type            = typename ViewBase_t::traits_type;
+    using value_type             = typename ViewBase_t::value_type;
+    using pointer                = typename ViewBase_t::pointer;
+    using const_pointer          = typename ViewBase_t::const_pointer;
+    using reference              = typename ViewBase_t::reference;
+    using const_reference        = typename ViewBase_t::const_reference;
+    using const_iterator         = typename ViewBase_t::const_iterator;
+    using iterator               = typename ViewBase_t::iterator;
+    using const_reverse_iterator = typename ViewBase_t::const_reverse_iterator;
+    using reverse_iterator       = typename ViewBase_t::reverse_iterator;
+    using size_type              = typename ViewBase_t::size_type;
+    using difference_type        = typename ViewBase_t::difference_type;
 
     constexpr basic_shared_string(void) noexcept( std::is_nothrow_default_constructible_v<LIFETIME_T> ) = default;
     basic_shared_string(basic_shared_string &&) noexcept( std::is_nothrow_move_constructible_v<LIFETIME_T> )  = default;
@@ -125,11 +125,11 @@ public:
 
     /**
      * @brief operator std::basic_string<CHAR_T>
-     * Convienience function for getting an std::basic_string<CHAR_T> from this basic_shared_string
+     * Convenience function for getting an std::basic_string<CHAR_T> from this basic_shared_string
      */
-    explicit operator std::basic_string<CHAR_T>() noexcept( noexcept( std::basic_string<CHAR_T>(data(), size()) ) )
+    explicit operator std::basic_string<CHAR_T>() noexcept( noexcept( std::basic_string<CHAR_T>(ViewBase_t::data(), ViewBase_t::size()) ) )
     {
-        return { data(), size() };
+        return { ViewBase_t::data(), ViewBase_t::size() };
     }
 
 protected:
@@ -137,10 +137,10 @@ protected:
 
     template<typename IT_T>
     friend basic_shared_string create_shared_string(IT_T&&, IT_T&&) noexcept(false); // allocates
-    friend shared_string create_shared_string(const char * data, size_t len) noexcept(false);
+    friend basic_shared_string create_shared_string(const char * data, size_t len) noexcept(false);
     friend basic_shared_string create_shared_string(ViewBase_t) noexcept(false); // allocates
 
-    friend constexpr basic_shared_string create_reference_shared_string(ViewBase_t) noexcept( std::is_nothrow_default_constructible_v<LIFETIME_T> );
+    friend basic_shared_string create_reference_shared_string(ViewBase_t) noexcept( std::is_nothrow_default_constructible_v<LIFETIME_T> );
 
     explicit constexpr basic_shared_string(ViewBase_t view) noexcept( std::is_nothrow_default_constructible_v<LIFETIME_T> )
      : ViewBase_t{ view }
@@ -158,10 +158,10 @@ private:
 /**
  * The concrete implementation.
  */
-using shared_string = basic_shared_string<char, std::shared_ptr<const CHAR_T[]>>;
+using shared_string = basic_shared_string<char, std::shared_ptr<const char[]>>;
 
 
-shared_string create_shared_string(std::string_view view, std::shared_ptr<const CHAR_T[]> buf) noexcept
+shared_string create_shared_string(std::string_view view, std::shared_ptr<const char[]> buf) noexcept
 {
     return shared_string{ view, std::move(buf) };
 }
@@ -212,9 +212,9 @@ shared_string create_shared_string(std::string_view view) noexcept(false) // all
  * @param view
  * @return a shared_string that does not attempt lifetime management at all.
  */
-constexpr shared_string create_reference_shared_string(std::string_view view) noexcept
+shared_string create_reference_shared_string(std::string_view view) noexcept
 {
-    return shared_string{ std::string_view };
+    return shared_string{ view };
 }
 
 } // namespace osp

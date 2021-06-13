@@ -234,7 +234,8 @@ ActiveEnt SysVehicle::part_instantiate(
 
     for (PCompName const& pcompName : part.m_partName)
     {
-        rScene.reg_emplace<ACompName>(newEntities[pcompName.m_entity], pcompName.m_name);
+        rScene.reg_emplace<ACompName>(newEntities[pcompName.m_entity],
+                                      create_shared_string(pcompName.m_name));
     }
 
     // Create drawables

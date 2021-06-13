@@ -26,6 +26,7 @@
 
 #include "../types.h"
 #include "activetypes.h"
+#include "../shared_string.h"
 
 #include <entt/entity/entity.hpp>
 
@@ -51,8 +52,8 @@ struct ACompDelete{ };
 
 struct ACompName
 {
-    ACompName(std::string name) : m_name(std::move(name)) { }
-    std::string m_name;
+    ACompName(shared_string const& name) : m_name(name) { }
+    shared_string m_name;
 };
 
 struct ACompHierarchy
