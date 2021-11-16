@@ -62,7 +62,7 @@ jobs:
 
     - name: Compile Dependencies
       run: |
-        cmake --build build --parallel --config ${{ matrix.config }} --target osp-magnum-deps
+        cmake --build build --parallel 1 --config ${{ matrix.config }} --target osp-magnum-deps
 
     - name: Compile OSP-Magnum
       run: |
