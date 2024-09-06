@@ -475,6 +475,16 @@ struct FIRocketsJolt {
     struct Pipelines { };
 };
 
+struct FICharactersJolt {
+    struct DataIds {
+        DataId characters;
+        DataId factors;
+    };
+
+    struct Pipelines { };
+};
+
+
 
 struct FITerrain {
     struct DataIds {

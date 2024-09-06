@@ -64,12 +64,12 @@ secondary = "None"
 holdable = true
 
 [vehicle_thr_more]
-primary = "LShift"
+primary = "I"
 secondary = "None"
 holdable = true
 
 [vehicle_thr_less]
-primary = "LCtrl"
+primary = "K"
 secondary = "None"
 holdable = true
 
@@ -77,6 +77,46 @@ holdable = true
 primary = "LCtrl+C"
 secondary = "LShift+A"
 holdable = false
+
+[vehicle_jump]
+primary = "F"
+secondary = "None"
+holdable = true
+
+[vehicle_crouch]
+primary = "Ctrl"
+secondary = "None"
+holdable = true
+
+[vehicle_relative_fw]
+primary = "W"
+secondary = "None"
+holdable = true
+
+[vehicle_relative_bk]
+primary = "S"
+secondary = "None"
+holdable = true
+
+[vehicle_relative_lf]
+primary = "A"
+secondary = "None"
+holdable = true
+
+[vehicle_relative_rt]
+primary = "D"
+secondary = "None"
+holdable = true
+
+[vehicle_relative_up]
+primary = "Space"
+secondary = "None"
+holdable = true
+
+[vehicle_relative_dn]
+primary = "LCtrl"
+secondary = "None"
+holdable = true
 
 [game_switch]
 primary = "V"
@@ -139,7 +179,7 @@ secondary = "None"
 holdable = true
 
 [debug_throw]
-primary = "Space"
+primary = "B"
 secondary = "None"
 holdable = true
 

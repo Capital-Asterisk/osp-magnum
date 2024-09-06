@@ -52,6 +52,9 @@ extern osp::fw::FeatureDef const ftrFlatMaterial;
 
 extern osp::fw::FeatureDef const ftrCameraControlGD;
 
+extern osp::fw::FeatureDef const ftrBirdGD;
+
+
 #if 0
 /**
  * @brief Magnum MeshVisualizer shader and optional material for drawing ActiveEnts with it

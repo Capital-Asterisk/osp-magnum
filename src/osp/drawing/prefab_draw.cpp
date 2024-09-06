@@ -164,13 +164,16 @@ void SysPrefabDraw::init_mesh_texture_material(
                 mat.types() & Magnum::Trade::MaterialType::PbrMetallicRoughness)
             {
                 auto const& matPbr = mat.as<Magnum::Trade::PbrMetallicRoughnessMaterialData>();
-                if (auto const baseColor = matPbr.baseColorTexture();
-                    baseColor != -1)
+                if (mat.hasAttribute(Magnum::Trade::MaterialAttribute::BaseColorTexture))
                 {
-                    osp::ResId const texRes = rImportData.m_textures[baseColor];
-                    TexId const texId = SysRender::own_texture_resource(rDrawing, rDrawingRes, rResources, texRes);
-                    rScnRender.m_diffuseTex[drawEnt] = rDrawing.m_texRefCounts.ref_add(texId);
-                    rScnRender.m_diffuseDirty.push_back(drawEnt);
+                    if (auto const baseColor = matPbr.baseColorTexture();
+                        baseColor != -1)
+                    {
+                        osp::ResId const texRes = rImportData.m_textures[baseColor];
+                        TexId const texId = SysRender::own_texture_resource(rDrawing, rDrawingRes, rResources, texRes);
+                        rScnRender.m_diffuseTex[drawEnt] = rDrawing.m_texRefCounts.ref_add(texId);
+                        rScnRender.m_diffuseDirty.push_back(drawEnt);
+                    }
                 }
             }
 

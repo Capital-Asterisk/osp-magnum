@@ -149,10 +149,10 @@ void FlyingScene::_enter_tree() // practically main()?
     m_lightInstance                  = renderingServer->instance_create();
     renderingServer->instance_set_scenario(m_lightInstance, m_scenario);
 
-    RID light = renderingServer->directional_light_create();
-    renderingServer->light_set_distance_fade(light, false, 0., 0., 0.);
-    renderingServer->light_set_shadow(light, false);
-    renderingServer->instance_set_base(m_lightInstance, light);
+//    RID light = renderingServer->directional_light_create();
+//    renderingServer->light_set_distance_fade(light, false, 0., 0., 0.);
+//    renderingServer->light_set_shadow(light, false);
+//    renderingServer->instance_set_base(m_lightInstance, light);
 
     Transform3D lform = Transform3D(Basis().rotated(Vector3(1, 1, 1), -1.), Vector3(0., 0., 0.));
     renderingServer->instance_set_transform(m_lightInstance, lform);
@@ -335,6 +335,7 @@ void FlyingScene::load_a_bunch_of_stuff()
     const std::string_view              datapath = { "OSPData/adera/" };
     const std::vector<std::string_view> meshes   = {
         "spamcan.sturdy.gltf",
+        "charball.gltf",
         "stomper.sturdy.gltf",
         "ph_capsule.sturdy.gltf",
         "ph_fuselage.sturdy.gltf",
@@ -410,7 +411,7 @@ ContextId make_scene_renderer(Framework &rFW, ContextId mainCtx, ContextId scene
         scnRdrCB.add_feature(ftrThrower);
         scnRdrCB.add_feature(ftrPhysicsShapesDraw, matFlat);
         scnRdrCB.add_feature(ftrCursor, TplPkgIdMaterialId{defaultPkg, matFlat});
-
+            scnRdrCB.add_feature(ftrBirdGD);
 
         if (rFW.get_interface_id<FIPrefabs>(sceneCtx).has_value())
         {

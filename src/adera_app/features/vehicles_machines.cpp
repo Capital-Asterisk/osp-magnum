@@ -58,15 +58,7 @@ FeatureDef const ftrMachMagicRockets = feature_def("MachMagicRockets", [] (
         DependOn<FIParts>           parts,
         DependOn<FISignalsFloat>    sigFloat)
 {
-    rFB.task()
-        .name       ("Allocate Machine update bitset for MagicRocket")
-        .run_on     ({scn.pl.update(Run)})
-        .sync_with  ({parts.pl.machIds(Ready), parts.pl.machUpdExtIn(New)})
-        .args       ({parts.di.scnParts, parts.di.updMach})
-        .func       ([] (ACtxParts& rScnParts, MachineUpdater& rUpdMach)
-    {
-        rUpdMach.localDirty[gc_mtMagicRocket].resize(rScnParts.machines.perType[gc_mtMagicRocket].localIds.capacity());
-    });
+
 }); // setup_mach_rocket
 
 
@@ -245,16 +237,6 @@ FeatureDef const ftrMachRCSDriver = feature_def("RCSDriver", [] (
         DependOn<FISignalsFloat>    sigFloat)
 {
     rFB.task()
-        .name       ("Allocate Machine update bitset for RcsDriver")
-        .run_on     ({scn.pl.update(Run)})
-        .sync_with  ({parts.pl.machIds(Ready), parts.pl.machUpdExtIn(New)})
-        .args       ({parts.di.scnParts, parts.di.updMach})
-        .func       ([] (ACtxParts& rScnParts, MachineUpdater& rUpdMach)
-    {
-        rUpdMach.localDirty[gc_mtRcsDriver].resize(rScnParts.machines.perType[gc_mtRcsDriver].localIds.capacity());
-    });
-
-    rFB.task()
         .name       ("RCS Drivers calculate new values")
         .run_on     ({parts.pl.linkLoop(MachUpd)})
         .sync_with  ({parts.pl.machUpdExtIn(Ready)})
@@ -337,6 +319,13 @@ struct VehicleControls
     input::EButtonControlIndex btnYawRt;
     input::EButtonControlIndex btnRollLf;
     input::EButtonControlIndex btnRollRt;
+    input::EButtonControlIndex btnRelLf;
+    input::EButtonControlIndex btnRelRt;
+    input::EButtonControlIndex btnRelFw;
+    input::EButtonControlIndex btnRelBk;
+    input::EButtonControlIndex btnRelUp;
+    input::EButtonControlIndex btnRelDn;
+    input::EButtonControlIndex btnJump;
 };
 
 FeatureDef const ftrVehicleControl = feature_def("VehicleControl", [] (
@@ -345,7 +334,8 @@ FeatureDef const ftrVehicleControl = feature_def("VehicleControl", [] (
         DependOn<FIWindowApp>       windowApp,
         DependOn<FIScene>           scn,
         DependOn<FIParts>           parts,
-        DependOn<FISignalsFloat>    sigFloat)
+        DependOn<FISignalsFloat>    sigFloat,
+        DependOn<FICameraControl>   camCtrl)
 {
     rFB.pipeline(vhclCtrl.pl.selectedVehicle).parent(scn.pl.update);
 
@@ -363,17 +353,25 @@ FeatureDef const ftrVehicleControl = feature_def("VehicleControl", [] (
         .btnYawLf   = rUserInput.button_subscribe("vehicle_yaw_lf"),
         .btnYawRt   = rUserInput.button_subscribe("vehicle_yaw_rt"),
         .btnRollLf  = rUserInput.button_subscribe("vehicle_roll_lf"),
-        .btnRollRt  = rUserInput.button_subscribe("vehicle_roll_rt")
+        .btnRollRt  = rUserInput.button_subscribe("vehicle_roll_rt"),
+        .btnRelLf   = rUserInput.button_subscribe("vehicle_relative_lf"),
+        .btnRelRt   = rUserInput.button_subscribe("vehicle_relative_rt"),
+        .btnRelFw   = rUserInput.button_subscribe("vehicle_relative_fw"),
+        .btnRelBk   = rUserInput.button_subscribe("vehicle_relative_bk"),
+        .btnRelUp   = rUserInput.button_subscribe("vehicle_relative_up"),
+        .btnRelDn   = rUserInput.button_subscribe("vehicle_relative_dn"),
+        .btnJump   = rUserInput.button_subscribe("vehicle_jump")
     });
 
     rFB.task()
         .name       ("Select vehicle")
         .run_on     ({windowApp.pl.inputs(Run)})
         .sync_with  ({vhclCtrl.pl.selectedVehicle(Modify)})
-        .args       ({      parts.di.scnParts,                               windowApp.di.userInput,                 vhclCtrl.di.vhControls})
-        .func([] (ACtxParts& rScnParts, input::UserInputHandler const &rUserInput, VehicleControls &rVhControls) noexcept
+        .args       ({      parts.di.scnParts,                    windowApp.di.userInput,       vhclCtrl.di.vhControls})
+        .func       ([] (ACtxParts& rScnParts, input::UserInputHandler const &rUserInput, VehicleControls &rVhControls ) noexcept
     {
         PerMachType &rUsrCtrl    = rScnParts.machines.perType[gc_mtUserCtrl];
+
 
         // Select a UsrCtrl machine when pressing the switch button
         if (rUserInput.button_state(rVhControls.btnSwitch).m_triggered)
@@ -405,9 +403,9 @@ FeatureDef const ftrVehicleControl = feature_def("VehicleControl", [] (
     rFB.task()
         .name       ("Write inputs to UserControl Machines")
         .run_on     ({scn.pl.update(Run)})
-        .sync_with  ({windowApp.pl.inputs(Run), sigFloat.pl.sigFloatUpdExtIn(Modify)})
-        .args       ({      parts.di.scnParts,                parts.di.updMach,                       sigFloat.di.sigValFloat,                    sigFloat.di.sigUpdFloat,                               windowApp.di.userInput,                 vhclCtrl.di.vhControls,           scn.di.deltaTimeIn})
-        .func([] (ACtxParts& rScnParts, MachineUpdater& rUpdMach, SignalValues_t<float>& rSigValFloat, UpdateNodes<float>& rSigUpdFloat, input::UserInputHandler const& rUserInput, VehicleControls& rVhControls, float const deltaTimeIn) noexcept
+        .sync_with  ({windowApp.pl.inputs(Run), sigFloat.pl.sigFloatUpdExtIn(Modify)}) // TODO: sync rCamCtrl
+        .args       ({      parts.di.scnParts,         parts.di.updMach,             sigFloat.di.sigValFloat,          sigFloat.di.sigUpdFloat,                    windowApp.di.userInput,       vhclCtrl.di.vhControls,                   camCtrl.di.camCtrl,      scn.di.deltaTimeIn})
+        .func       ([] (ACtxParts& rScnParts, MachineUpdater& rUpdMach, SignalValues_t<float>& rSigValFloat, UpdateNodes<float>& rSigUpdFloat, input::UserInputHandler const& rUserInput, VehicleControls& rVhControls, ACtxCameraController const &rCamCtrl, float const deltaTimeIn) noexcept
     {
         VehicleControls& rVC = rVhControls;
         auto const held = [&rUserInput] (input::EButtonControlIndex idx, float val) -> float
@@ -457,10 +455,71 @@ FeatureDef const ftrVehicleControl = feature_def("VehicleControl", [] (
             }
         };
 
+        auto const toggle_control = [&rSigValFloat, &rSigUpdFloat, &changed, portSpan] (PortEntry const& entry)
+        {
+            NodeId const node = connected_node(portSpan, entry.port);
+            if (node == lgrn::id_null<NodeId>())
+            {
+                return; // not connected
+            }
+
+            float const oldVal = rSigValFloat[node];
+            float const newVal = oldVal < 0.5f ? 1.0f : 0.0f;
+
+            if (oldVal != newVal)
+            {
+                rSigUpdFloat.assign(node, newVal);
+                changed = true;
+            }
+        };
+
+
+        Vector3 const walkRelative
+        {
+            held(rVC.btnRelRt, 1.0f) - held(rVC.btnRelLf, 1.0f),
+            0.0f,
+            held(rVC.btnRelBk, 1.0f) - held(rVC.btnRelFw, 1.0f)
+        };
+
+        Vector3 const walk = walkRelative.isZero() ? Vector3{} : (walkRelative.z() * Magnum::Math::cross(rCamCtrl.m_transform.right(), rCamCtrl.m_up)
+                            + walkRelative.x() * rCamCtrl.m_transform.right()).normalized();
+
+
+        Vector3 const flyRelative
+        {
+            held(rVC.btnRelRt, 1.0f) - held(rVC.btnRelLf, 1.0f),
+            held(rVC.btnRelUp, 1.0f) - held(rVC.btnRelDn, 1.0f),
+            held(rVC.btnRelBk, 1.0f) - held(rVC.btnRelFw, 1.0f)
+        };
+        if ( ! flyRelative.isZero() )
+        {
+            Vector3 const fly = (flyRelative.x() * rCamCtrl.m_transform.right()
+                              + flyRelative.y() * rCamCtrl.m_transform.up()
+                              + flyRelative.z() * rCamCtrl.m_transform.backward()).normalized();
+            write_control(ports_userctrl::gc_flyXOut,      fly.x());
+            write_control(ports_userctrl::gc_flyYOut,      fly.y());
+            write_control(ports_userctrl::gc_flyZOut,      fly.z());
+        }
+
+
+        if (rUserInput.button_state(rVhControls.btnRelUp).m_triggered)
+        {
+            // auto-deploy fly
+            write_control(ports_userctrl::gc_jumpOut,      1.0f);
+        }
+
+        if (rUserInput.button_state(rVhControls.btnJump).m_triggered)
+        {
+            toggle_control(ports_userctrl::gc_jumpOut);
+        }
+
         write_control(ports_userctrl::gc_throttleOut,   thrChange, false);
         write_control(ports_userctrl::gc_pitchOut,      attitude.x());
         write_control(ports_userctrl::gc_yawOut,        attitude.y());
         write_control(ports_userctrl::gc_rollOut,       attitude.z());
+        write_control(ports_userctrl::gc_walkXOut,      walk.x());
+        write_control(ports_userctrl::gc_walkYOut,      walk.y());
+        write_control(ports_userctrl::gc_walkZOut,      walk.z());
 
         if (changed)
         {

@@ -105,7 +105,7 @@ struct ACtxSceneRenderGd
     MeshGdEntStorage_t     m_meshId;
     TexGdEntStorage_t      m_diffuseTexId;
     InstanceGdEntStorage_t m_instanceId;
-    godot::RID             m_scenario;
+    //godot::RID             m_scenario;
 };
 
 /**

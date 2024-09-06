@@ -252,7 +252,6 @@ static void load_gltf(TinyGltfImporter &rImporter, ResId res, std::string_view n
 
         // Iterate scene objects with meshes and materials
         {
-
             StridedArrayView1D<UnsignedInt const> const meshMap
                     = scene->mapping<UnsignedInt>(SceneField::Mesh);
 
@@ -354,6 +353,7 @@ static EShape shape_from_name(std::string_view name) noexcept
 {
     if (name == "cube")             { return EShape::Box; }
     else if (name == "cylinder")    { return EShape::Cylinder; }
+    else if (name == "sphere")    { return EShape::Sphere; }
 
     OSP_LOG_WARN("Unknown shape: {}", name);
     return EShape::None;

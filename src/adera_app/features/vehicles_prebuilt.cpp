@@ -196,6 +196,62 @@ FeatureDef const ftrPrebuiltVehicles = feature_def("PrebuiltVehicles", [] (
         rPrebuiltVehicles[gc_pbvSimpleCommandServiceModule] = std::make_unique<VehicleData>(std::move(vbuilder.finalize_release()));
     }
 
+    {
+        VehicleBuilder vbuilder{&rResources};
+        VehicleBuilder::WeldVec_t toWeld;
+
+        auto const [ character, jetpack ] = vbuilder.create_parts<2>();
+        vbuilder.set_prefabs({
+            { character,  "charball" },
+            { jetpack,    "phLinRCS" }
+        });
+
+        toWeld.push_back( {character,  quick_transform({ 0.0f,  0.0f,  0.0f}, {})} );
+        toWeld.push_back( {jetpack, quick_transform({ 0.0f,  0.0f,  -0.1f}, {})} );
+
+        namespace ports_magicrocket = adera::ports_magicrocket;
+        namespace ports_userctrl = adera::ports_userctrl;
+
+        auto const [ jump, crouch, walkX, walkY, walkZ, flyX, flyY, flyZ,
+                     throttle, thrustMul ] = vbuilder.create_nodes<10>(gc_ntSigFloat);
+
+        auto &rFloatValues = vbuilder.node_values< SignalValues_t<float> >(gc_ntSigFloat);
+        rFloatValues[thrustMul] = 100.0f;
+
+        vbuilder.create_machine(character, gc_mtUserCtrl, {
+            { ports_userctrl::gc_throttleOut,   throttle },
+            { ports_userctrl::gc_jumpOut,   jump },
+            { ports_userctrl::gc_crouchOut, crouch },
+            { ports_userctrl::gc_walkXOut,  walkX },
+            { ports_userctrl::gc_walkYOut,  walkY },
+            { ports_userctrl::gc_walkZOut,  walkZ },
+            { ports_userctrl::gc_flyXOut,   flyX },
+            { ports_userctrl::gc_flyYOut,   flyY },
+            { ports_userctrl::gc_flyZOut,   flyZ }
+        } );
+
+        vbuilder.create_machine(character, gc_mtCharacter, {
+            { ports_character::gc_jumpIn,   jump },
+            { ports_character::gc_crouchIn, crouch },
+            { ports_character::gc_walkXIn,  walkX },
+            { ports_character::gc_walkYIn,  walkY },
+            { ports_character::gc_walkZIn,  walkZ },
+            { ports_character::gc_flyXIn,   flyX },
+            { ports_character::gc_flyYIn,   flyY },
+            { ports_character::gc_flyZIn,   flyZ }
+        } );
+
+        vbuilder.create_machine(jetpack, gc_mtMagicRocket, {
+            { ports_magicrocket::gc_throttleIn, throttle },
+            { ports_magicrocket::gc_multiplierIn, thrustMul }
+        } );
+
+        vbuilder.weld(toWeld);
+
+        rPrebuiltVehicles[gc_pbvCharacter] = std::make_unique<VehicleData>(std::move(vbuilder.finalize_release()));
+
+    }
+
 
     // Put more prebuilt vehicles here!
 

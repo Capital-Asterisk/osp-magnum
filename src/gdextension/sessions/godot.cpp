@@ -25,7 +25,10 @@
 #include "godot.h"
 
 #include "flying_scene.h"
+#include "godot_cpp/classes/resource_loader.hpp"
 #include "input.h"
+#include "osp/activescene/physics.h"
+#include "osp/activescene/vehicles.h"
 #include "render.h"
 
 #include "../feature_interfaces.h"
@@ -483,5 +486,126 @@ osp::fw::FeatureDef const ftrCameraControlGD = feature_def("CameraControlGodot",
             rs->camera_set_transform(rCamera, godot::Transform3D(gBasis, gTrans));
         });
 }); // ftrCameraControlGD
+
+
+struct FIBirdGd {
+    struct DataIds {
+        DataId birdGD;
+    };
+
+    struct Pipelines {
+
+    };
+};
+
+struct Bird
+{
+    godot::RID instance;
+
+};
+
+struct ACtxBirdGD
+{
+    osp::KeyedVec<link::MachLocalId, Bird> foo;
+    godot::RID walk;
+    godot::RID fly;
+};
+
+osp::fw::FeatureDef const ftrBirdGD = feature_def("BirdGD", [] (
+        FeatureBuilder              &rFB,
+        Implement<FIBirdGd>         bird,
+        DependOn<FIScene>           scn,
+        DependOn<FICommonScene>     comScn,
+        DependOn<FIPhysics>         phys,
+        DependOn<FIParts>           parts,
+        DependOn<FISignalsFloat>    sigFloat,
+        DependOn<FIVehicleSpawn>    vhclSpawn,
+        DependOn<FIWindowApp>       windowApp,
+        DependOn<FISceneRenderer>   scnRender,
+        DependOn<FIGodot>           godot,
+        DependOn<FIGodotScene>      gdScn)
+{
+    using namespace osp::link;
+
+    auto &rBirdGD = rFB.data_emplace<ACtxBirdGD>(bird.di.birdGD);
+    rFB.task()
+        .name       ("bird")
+        .run_on     ({ windowApp.pl.sync(Run) })
+        .sync_with  ({parts.pl.weldIds(Ready), parts.pl.connect(Ready)})
+        .args       ({     comScn.di.basic,       phys.di.phys,                  parts.di.scnParts, godot.di.render,   gdScn.di.scnRenderGl,      bird.di.birdGD})
+        .func       ([] (ACtxBasic& rBasic, ACtxPhysics& rPhys, ACtxParts const& rScnParts,        RenderGd &renderGD, ACtxSceneRenderGd &scnRenderGd, ACtxBirdGD &rBirdGD) noexcept
+    {
+        auto rs = godot::RenderingServer::get_singleton();
+        auto walk = godot::ResourceLoader::get_singleton()->load("res://bird/regularavian_Plane_001.res");
+        auto fly = godot::ResourceLoader::get_singleton()->load("res://bird/regularavian_Plane_003.res");
+        LGRN_ASSERT(walk.is_valid() && fly.is_valid());
+        rBirdGD.walk = walk->get_rid();
+        rBirdGD.fly = fly->get_rid();
+
+        rBirdGD.foo.resize(rScnParts.machines.perType[gc_mtCharacter].localIds.capacity());
+        for (WeldId const weld : rScnParts.weldDirty)
+        {
+            for (PartId const part : rScnParts.weldToParts[weld])
+            {
+                for (MachinePair const pair : rScnParts.partToMachines[part])
+                {
+                    if (pair.type != gc_mtCharacter)
+                    {
+                        continue;
+                    }
+                    Bird &rBird = rBirdGD.foo[pair.local];
+
+                    rBird.instance = rs->instance_create2(rBirdGD.walk, renderGD.scenario);
+                }
+            }
+        }
+    });
+    rFB.task()
+        .name       ("Sync magpies")
+        .run_on     ({ windowApp.pl.sync(Run) })
+        .sync_with  ({ scnRender.pl.drawTransforms(UseOrRun), sigFloat.pl.sigFloatValues(Ready)})
+        .args       ({     comScn.di.basic,         parts.di.scnParts,      scnRender.di.scnRender,      bird.di.birdGD,             sigFloat.di.sigValFloat  })
+        .func       ([](ACtxBasic& rBasic, ACtxParts const &rScnParts, ACtxSceneRender &rScnRender, ACtxBirdGD &rBirdGD, SignalValues_t<float> &rSigValFloat) noexcept
+    {
+        auto rs = godot::RenderingServer::get_singleton();
+        auto &rCharacterMachs =  rScnParts.machines.perType[gc_mtCharacter];
+        for (MachLocalId local : rCharacterMachs.localIds)
+        {
+            godot::RID instance = rBirdGD.foo[local].instance;
+
+            MachAnyId mach    = rCharacterMachs.localToAny[local];
+
+            auto port = rScnParts.nodePerType[gc_ntSigFloat].machToNode[mach];
+            NodeId jump = port[ports_character::gc_jumpIn.port];
+
+            bool fly = rSigValFloat[jump] > 0.5f;
+
+
+            PartId    part    = rScnParts.machineToPart[mach];
+            ActiveEnt ent     = rScnParts.partToActive[part];
+            ActiveEnt child   = *std::next(SysSceneGraph::children(rBasic.m_scnGraph, ent).begin());
+            DrawEnt   drawEnt = rScnRender.m_activeToDraw[child];
+            if (drawEnt.has_value())
+            {
+                Matrix4 drawTf  = rScnRender.m_drawTransform[drawEnt];
+
+                drawTf = drawTf * Matrix4::rotationY(Magnum::Deg{180}) * Matrix4::translation({0.0f, -1.0f, 0.0f});
+
+
+                auto         rot   = Magnum::Quaternion::fromMatrix(drawTf.rotation()).data();
+                auto         scale = drawTf.scaling();
+                godot::Basis basis{ godot::Quaternion(rot[0], rot[1], rot[2], rot[3]),
+                                    godot::Vector3(scale.x(), scale.y(), scale.z()) };
+
+                auto         pos    = drawTf.translation();
+                auto         origin = godot::Vector3(pos.x(), pos.y(), pos.z());
+                auto         tf     = godot::Transform3D(basis, origin);
+                rs->instance_set_transform(instance, tf);
+
+                rs->instance_set_base(instance, fly ? rBirdGD.fly : rBirdGD.walk);
+            }
+        }
+    });
+});
 
 } // namespace ospgdext

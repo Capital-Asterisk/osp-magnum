@@ -420,17 +420,24 @@ FeatureDef const ftrVehicleSpawnJolt = feature_def("VehicleSpawnJolt", [] (
                 Vector3 const com = massPos / totalMass;
                 auto const comToOrigin = Matrix4::translation( - com );
 
+                LGRN_ASSERT(Magnum::Math::isNan(com).none());
+
                 Matrix3 inertiaTensor{0.0f};
                 SysPhysics::calculate_subtree_mass_inertia(rBasic.m_transform, rPhys, rBasic.m_scnGraph, weldEnt, inertiaTensor, comToOrigin);
 
+                LGRN_ASSERT(Magnum::Math::isNan(inertiaTensor[0]).none());
+                LGRN_ASSERT(Magnum::Math::isNan(inertiaTensor[1]).none());
+                LGRN_ASSERT(Magnum::Math::isNan(inertiaTensor[2]).none());
+
+
                 Matrix4 const inertiaTensorMat4{inertiaTensor};
 
-                MassProperties massProp;
-                massProp.mMass = totalMass;
-                massProp.mInertia = Mat44::sLoadFloat4x4((Float4*) inertiaTensorMat4.data());
+                //MassProperties massProp;
+                //massProp.mMass = totalMass;
+                //massProp.mInertia = Mat44::sLoadFloat4x4((Float4*) inertiaTensorMat4.data());
 
-                bodyCreation.mMassPropertiesOverride = massProp;
-                bodyCreation.mOverrideMassProperties = EOverrideMassProperties::MassAndInertiaProvided;
+                bodyCreation.mMassPropertiesOverride.mMass = totalMass;
+                bodyCreation.mOverrideMassProperties = EOverrideMassProperties::CalculateInertia;
 
                 bodyCreation.mLinearDamping = 0.0f;
                 bodyCreation.mAngularDamping = 0.0f;
@@ -710,6 +717,367 @@ FeatureDef const ftrRocketThrustJolt = feature_def("RocketThrustJolt", [] (
 
     rRocketsJolt.factorIndex = static_cast<std::uint8_t>(index);
 }); // ftrRocketThrustJolt
+
+
+
+
+struct BodyCharacter
+{
+//    Quaternion      m_rotation;
+//    Vector3         m_offset;
+
+    Vector3         worldUp{0.0f, 0.0f, 1.0f};
+
+    MachLocalId     m_local         {lgrn::id_null<MachLocalId>()};
+//    NodeId          m_throttleIn    {lgrn::id_null<NodeId>()};
+//    NodeId          m_multiplierIn  {lgrn::id_null<NodeId>()};
+
+    std::array<NodeId, 9> nodesIn{};
+};
+
+struct ACtxCharactersJolt
+{
+    // map each bodyId to a {machine, offset}
+    //TODO: make an IdMultiMap or something.
+    lgrn::IntArrayMultiMap<BodyId::entity_type, BodyCharacter> bodies;
+    std::uint8_t factorIndex;
+};
+
+static void assign_weld_characters(
+        WeldId                   const weld,
+        ACtxCharactersJolt             &rCharactersJolt,
+        ACtxJoltWorld                  &rJolt,
+        std::vector<BodyCharacter>     &rCharactersFoundTemp,
+        ACtxBasic                const &rBasic,
+        ACtxParts                const &rScnParts,
+        Nodes                    const &rFloatNodes,
+        PerMachType              const &machtypeRocket)
+{
+    using adera::gc_mtCharacter;
+
+    rCharactersFoundTemp.clear();
+
+    ActiveEnt const weldEnt = rScnParts.weldToActive[weld];
+    BodyId const body    = rJolt.m_entToBody.at(weldEnt);
+
+    if (rCharactersJolt.bodies.contains(body.value))
+    {
+        rCharactersJolt.bodies.erase(body.value);
+    }
+
+    // Each weld consists of multiple parts, iterate them all. Note that each part has their own
+    // individual transforms, so math is needed to calculate stuff with thrust direction and
+    // center-of-mass.
+    for (PartId const part : rScnParts.weldToParts[weld])
+    {
+        auto const sizeBefore = rCharactersFoundTemp.size();
+
+        // Each part contains Machines, some of which may be rockets.
+        for (MachinePair const pair : rScnParts.partToMachines[part])
+        {
+            if (pair.type != gc_mtCharacter)
+            {
+                continue; // This machine is not a rocket
+            }
+
+            MachAnyId const  mach         = machtypeRocket.localToAny[pair.local];
+            auto      const& portSpan     = rFloatNodes.machToNode[mach];
+
+            BodyCharacter &rBodyCharacter     = rCharactersFoundTemp.emplace_back();
+            rBodyCharacter.m_local         = pair.local;
+
+            for (std::size_t i = 0; i < rBodyCharacter.nodesIn.size(); ++i)
+            {
+                rBodyCharacter.nodesIn[i] = connected_node(portSpan, PortId(i));
+            }
+        }
+    }
+
+    ForceFactors_t &rBodyFactors = rJolt.m_bodyFactors[body];
+
+    if ( rCharactersFoundTemp.empty() )
+    {
+        rBodyFactors.reset(rCharactersJolt.factorIndex);
+    }
+    else
+    {
+        rBodyFactors.set(rCharactersJolt.factorIndex);
+        rCharactersJolt.bodies.emplace(body.value, rCharactersFoundTemp.begin(), rCharactersFoundTemp.end());
+    }
+}
+
+struct CharacterUserData
+{
+    ACtxCharactersJolt    const &rCharactersJolt;
+    Machines              const &rMachines;
+    SignalValues_t<float> const &rSigValFloat;
+};
+
+    //            Vector3 backwards = -vel.normalized();
+    //            Vector3 rightNotNorm = Magnum::Math::cross(bodyCharacter.worldUp, backwards);
+    //            if (!rightNotNorm.isZero())
+    //            {
+    //                Vector3 right = rightNotNorm.normalized();
+    //                Vector3 up = Magnum::Math::cross(backwards, right);
+
+    //                Quaternion tgtRot = Quaternion::fromMatrix({ right, up, backwards });
+
+    //                Quaternion errGlobal = tgtRot * rot.inverted();
+
+    //                Vector3 axis = rot.inverted().transformVector(errGlobal.axis());
+
+    //                //rTorque += -angVel * 800.0f + axis * 1000.0f;
+
+    //                bodyInterface.SetAngularVelocity(joltBodyId, Vec3MagnumToJolt(axis * 3.0f));
+
+    //                //bodyInterface.SetRotation(joltBodyId, QuatMagnumToJolt(tgtRot), EActivation::Activate);
+    //            }
+
+// ACtxjoltWorld::ForceFactorFunc::Func_t
+static void character_force(BodyId const bodyId, ACtxJoltWorld const& rJolt, entt::any userData, Vector3& rForce, Vector3& rTorque) noexcept
+{
+    using Magnum::Math::dot;
+    using Magnum::Math::cross;
+
+    auto const [rCharactersJolt, rMachines, rSigValFloat] = entt::any_cast<CharacterUserData>(userData);
+    auto &rBodyCharacters = rCharactersJolt.bodies[bodyId.value];
+
+    PhysicsSystem *pJoltWorld = rJolt.m_pPhysicsSystem.get();
+    //no lock as all bodies are locked in callbacks
+    BodyInterface &bodyInterface = pJoltWorld->GetBodyInterfaceNoLock();
+
+    if (rBodyCharacters.empty())
+    {
+        return;
+    }
+
+
+    JPH::BodyID joltBodyId = BToJolt(bodyId);
+    Quaternion const rot = QuatJoltToMagnum(bodyInterface.GetRotation(joltBodyId));
+    Shape const* shape = bodyInterface.GetShape(joltBodyId).GetPtr();
+
+    if (shape == nullptr)
+    {
+        return;
+    }
+    Vector3 com = Vec3JoltToMagnum(shape->GetCenterOfMass());
+
+    Vector3 angVel = Vec3JoltToMagnum(bodyInterface.GetAngularVelocity(joltBodyId));
+
+    Vector3 vel = Vec3JoltToMagnum(bodyInterface.GetLinearVelocity(joltBodyId));
+
+    //auto const &massprops = shape->GetMassProperties();
+    float const mass = 10.0f;
+
+
+    for (BodyCharacter const& bodyCharacter : rBodyCharacters)
+    {
+        auto const read_port = [&bodyCharacter, &rSigValFloat] (PortEntry port) -> float
+        {
+            NodeId const node = bodyCharacter.nodesIn[port.port];
+            return node != lgrn::id_null<NodeId>() ? rSigValFloat[node] : 0.0f;
+        };
+
+        Vector3 backwards   = rot.transformVector(Vector3{0.0f, 0.0f, 1.0f});
+        Vector3 up          = rot.transformVector(Vector3{0.0f, 1.0f, 0.0f});
+        Vector3 right       = rot.transformVector(Vector3{1.0f, 0.0f, 0.0f});
+
+        Vector3 angang;
+
+
+        bool const fly = read_port(ports_character::gc_jumpIn) > 0.5f;
+
+        if (fly)
+        {
+            Vector3 const flyDir{  read_port(ports_character::gc_flyXIn),
+                                   read_port(ports_character::gc_flyYIn),
+                                   read_port(ports_character::gc_flyZIn)};
+
+            float const coeffX = 5.0f;
+            float const coeffY = 2.0f;
+
+            float const forwardness = std::clamp(0.1f* Magnum::Math::pow(dot(vel,backwards), 2.0f) - 2.0f, 0.0f, 1.0f);
+
+            float const dragX = -dot(vel,up) * forwardness * coeffX;
+            float const dragY = -dot(vel,right) * forwardness * coeffY;
+
+            Vector3 const aero = up * dragX + right * dragY;
+
+            rForce += aero * mass;
+
+            if (vel.length() > 1.0f)
+            {
+                Vector3 tgtBackwards = -vel.normalized();
+                angang += cross(tgtBackwards, backwards);
+            }
+
+
+            if ( ! flyDir.isZero() )
+            {
+                Vector3 tgtBackwards = -flyDir.normalized();
+                Vector3 attitudeControlTotal = 0.5f * cross(tgtBackwards, backwards);
+
+                // pitch boost
+                attitudeControlTotal += right * dot(attitudeControlTotal, right);
+
+                angang += attitudeControlTotal;
+            }
+            else
+            {
+                angang -= 0.07f * angVel;
+            }
+
+
+            if (true)
+            {
+                Vector3 up = rot.transformVector(Vector3{0.0f, 1.0f, 0.0f});
+
+                Vector3 upFlat = (up - backwards * dot(up, backwards)).normalized();
+                Vector3 tgtUpFlat = (flyDir - backwards * dot(flyDir, backwards)).normalized();
+
+                float angdiff = dot(backwards, cross(upFlat, tgtUpFlat));
+
+                angdiff = angdiff * angdiff * angdiff;
+
+                angang += angdiff * backwards * 0.5f;
+            }
+
+            angang -= 0.07f * angVel;
+        }
+        else
+        {
+            Vector3 walk{read_port(ports_character::gc_walkXIn), read_port(ports_character::gc_walkYIn), read_port(ports_character::gc_walkZIn)};
+
+            Vector3 const horzVel     = vel - bodyCharacter.worldUp * dot(vel, bodyCharacter.worldUp);
+            Vector3 const horzVelNorm = horzVel.normalized();
+            float walkSpeed = 10.0f;
+
+            if (walk.length() > 0.01f)
+            {
+                bool turn = horzVel.length() > walkSpeed
+                            && dot(horzVelNorm, walk) > cos(Magnum::Deg{120.0f});
+
+                if (!turn)
+                {
+                    Vector3 desiredVel = walk * walkSpeed;
+
+                    Vector3 diff = desiredVel - vel;
+
+                    Vector3 force = diff * mass * 10.0f;
+
+                    Vector3 const horzForce = force - bodyCharacter.worldUp * dot(force, bodyCharacter.worldUp);
+
+                    rForce += horzForce;
+
+                }
+                else
+                {
+                    // overspeed, change direction instead?
+                    //std::cout << "overspeed\n";
+
+                    float turn = cross(horzVelNorm, walk).z() > 0.0f ? 1.0f : -1.0f ;
+
+                    Vector3 const right = cross(horzVel.normalized(), bodyCharacter.worldUp);
+
+                    rForce += -mass * turn * right * 100.0f;
+                }
+            }
+            else
+            {
+                // slow down
+
+                rForce -= horzVel * mass * 1.0f;
+            }
+
+
+
+            if ( ! vel.isZero() )
+            {
+
+                if (vel.length() > 1.0f)
+                {
+                    Vector3 tgtBackwards = -vel.normalized();
+                    angang += cross(tgtBackwards, backwards);
+                }
+
+                // backwards is an axis? backwards
+
+                Vector3 up = rot.transformVector(Vector3{0.0f, 1.0f, 0.0f});
+
+                Vector3 upFlat = (up - backwards * dot(up, backwards)).normalized();
+                Vector3 tgtUpFlat = (bodyCharacter.worldUp - backwards * dot(bodyCharacter.worldUp, backwards)).normalized();
+
+                float tiltabit = -0.1f * dot(angVel, bodyCharacter.worldUp);
+
+                float angdiff = dot(backwards, cross(upFlat, tgtUpFlat)) + tiltabit;
+
+                angang += angdiff * backwards * 0.5f;
+
+                //std::cout << "angdif: " << angdiff << "\n";
+            }
+        }
+
+        if (! Magnum::Math::isNan(angang).any() && ! angang.isZero())
+        {
+            bodyInterface.SetAngularVelocity(joltBodyId, Vec3MagnumToJolt(angang * 8.0f)  );
+        }
+    }
+}
+
+FeatureDef const ftrCharactersJolt = feature_def("CharactersJolt", [] (
+        FeatureBuilder              &rFB,
+        Implement<FICharactersJolt> characterJolt,
+        DependOn<FIMainApp>         mainApp,
+        DependOn<FIScene>           scn,
+        DependOn<FICommonScene>     comScn,
+        DependOn<FIPhysics>         phys,
+        DependOn<FIPrefabs>         prefabs,
+        DependOn<FIParts>           parts,
+        DependOn<FISignalsFloat>    sigFloat,
+        DependOn<FIJolt>            jolt,
+        DependOn<FIVehicleSpawn>    vhclSpawn)
+{
+    auto &rCharacters = rFB.data_emplace< ACtxCharactersJolt >(characterJolt.di.characters);
+
+    rFB.task()
+        .name       ("Assign characters to Jolt bodies")
+        .run_on     ({scn.pl.update(Run)})
+        .sync_with  ({parts.pl.weldIds(Ready), jolt.pl.joltBody(Ready), parts.pl.connect(Ready)})
+        .args       ({     comScn.di.basic,       phys.di.phys,         jolt.di.jolt,          parts.di.scnParts, characterJolt.di.characters})
+        .func       ([] (ACtxBasic& rBasic, ACtxPhysics& rPhys, ACtxJoltWorld& rJolt, ACtxParts const& rScnParts, ACtxCharactersJolt& rCharacters) noexcept
+    {
+        Nodes const &rFloatNodes = rScnParts.nodePerType[gc_ntSigFloat];
+        PerMachType const& machtypeRocket = rScnParts.machines.perType[adera::gc_mtCharacter];
+
+        rCharacters.bodies.ids_reserve(rJolt.m_bodyIds.size());
+        rCharacters.bodies.data_reserve(rScnParts.machines.perType[adera::gc_mtCharacter].localIds.capacity());
+
+        std::vector<BodyCharacter> temp;
+
+        for (WeldId const weld : rScnParts.weldDirty)
+        {
+            assign_weld_characters(weld, rCharacters, rJolt, temp, rBasic, rScnParts, rFloatNodes, machtypeRocket);
+        }
+    });
+
+    auto &rScnParts     = rFB.data_get< ACtxParts >              (parts.di.scnParts);
+    auto &rSigValFloat  = rFB.data_get< SignalValues_t<float> >  (sigFloat.di.sigValFloat);
+    Machines &rMachines = rScnParts.machines;
+
+    ACtxJoltWorld::ForceFactorFunc const factor
+    {
+        .m_func     = &character_force,
+        .m_userData = CharacterUserData{ rCharacters, rMachines, rSigValFloat }
+    };
+
+    auto &rJolt = rFB.data_get<ACtxJoltWorld>(jolt.di.jolt);
+
+    auto const index = rJolt.m_factors.size();
+    rJolt.m_factors.emplace_back(factor);
+
+    rCharacters.factorIndex = static_cast<std::uint8_t>(index);
+}); // ftrRocketThrustJolt
+
 
 
 } // namespace adera

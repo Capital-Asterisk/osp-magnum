@@ -116,6 +116,19 @@ FeatureDef const ftrParts = feature_def("Parts", [] (
     });
 
     rFB.task()
+        .name       ("Allocate Machine update bitsets")
+        .run_on     ({scn.pl.update(Run)})
+        .sync_with  ({parts.pl.machIds(Ready), parts.pl.machUpdExtIn(New)})
+        .args       ({parts.di.scnParts, parts.di.updMach})
+        .func       ([] (ACtxParts& rScnParts, MachineUpdater& rUpdMach)
+    {
+        for (std::size_t i = 0; i < MachTypeReg_t::size(); ++i)
+        {
+            rUpdMach.localDirty[i].resize(rScnParts.machines.perType[i].localIds.capacity());
+        }
+    });
+
+    rFB.task()
         .name       ("Schedule Link update")
         .schedules  ({parts.pl.linkLoop(ScheduleLink)})
         .sync_with  ({scn.pl.update(Run)})

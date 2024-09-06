@@ -223,6 +223,7 @@ void TestApp::load_a_bunch_of_stuff()
     const std::vector<std::string_view> meshes =
     {
         "spamcan.sturdy.gltf",
+        "charball.gltf",
         "stomper.sturdy.gltf",
         "ph_capsule.sturdy.gltf",
         "ph_fuselage.sturdy.gltf",

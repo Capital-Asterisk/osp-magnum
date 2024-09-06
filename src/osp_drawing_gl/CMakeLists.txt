@@ -80,11 +80,3 @@ source_group("Header Files" FILES ${H_FILES})
 
 # Enforce conformance mode for OspGL
 target_compile_options(OspGL PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/permissive->)
-
-
-# Copy root/bin to build/bin after building
-add_custom_command(TARGET OspGL
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/../../bin" "${CMAKE_BINARY_DIR}/$<CONFIG>"
-    VERBATIM
-)

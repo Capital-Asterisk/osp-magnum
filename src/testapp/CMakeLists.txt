@@ -104,9 +104,18 @@ set_target_properties(osp-magnum PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
+# Copy root/bin to build/bin after building
+add_custom_command(TARGET osp-magnum
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/bin" "${CMAKE_BINARY_DIR}/$<CONFIG>"
+    VERBATIM
+)
+
 add_custom_target(run-osp-magnum
                   COMMAND $<TARGET_FILE:osp-magnum>
                   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/$<CONFIG>)
 
 set_property(TARGET osp-magnum PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/bin")
+
+
 

@@ -58,6 +58,7 @@ void add_floor(Framework &rFW, ContextId sceneCtx, PkgId pkg, int size)
     auto distSizeX  = std::uniform_real_distribution<float>{20.0, 80.0};
     auto distSizeY  = std::uniform_real_distribution<float>{20.0, 80.0};
     auto distHeight = std::uniform_real_distribution<float>{1.0, 10.0};
+    auto distDec = std::uniform_real_distribution<float>{0.0, 1.0};
 
     constexpr float spread      = 128.0f;
 
@@ -73,6 +74,24 @@ void add_floor(Framework &rFW, ContextId sceneCtx, PkgId pkg, int size)
                 .m_mass     = 0.0f,
                 .m_shape    = EShape::Box
             });
+        }
+    }
+
+    for (int x = -size; x < size+1; ++x)
+    {
+        for (int y = -size; y < size+1; ++y)
+        {
+            if (distDec(randGen) < 0.3f)
+            {
+                float const heightZ = 30.0f + distHeight(randGen) * 5.0f;
+                rPhysShapes.m_spawnRequest.emplace_back(SpawnShape{
+                    .m_position = Vector3{float(x)*spread, float(y)*spread, heightZ},
+                    .m_velocity = {0.0f, 0.0f, 0.0f},
+                    .m_size     = Vector3{ 0.5f * distSizeX(randGen), 0.5f * distSizeY(randGen), heightZ},
+                    .m_mass     = 0.0f,
+                    .m_shape    = EShape::Box
+                });
+            }
         }
     }
 }
@@ -354,15 +373,15 @@ FeatureDef const ftrThrower = feature_def("Thrower", [] (
             float const speed = 120;
             float const dist = 8.0f;
 
-            for (int x = -2; x < 3; ++x)
+            for (int x = -0; x < 1; ++x)
             {
-                for (int y = -2; y < 3; ++y)
+                for (int y = -0; y < 1; ++y)
                 {
                     rPhysShapes.m_spawnRequest.push_back({
                         .m_position = camTf.translation() - camTf.backward()*dist + camTf.up()*float(y)*5.5f + camTf.right()*float(x)*5.5f,
                         .m_velocity = -camTf.backward()*speed,
                         .m_size     = Vector3{1.0f},
-                        .m_mass     = 1.0f,
+                        .m_mass     = 100.0f,
                         .m_shape    = EShape::Sphere
                     });
                 }

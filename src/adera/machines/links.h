@@ -40,6 +40,8 @@ using osp::link::gc_sigOut;
 inline osp::link::MachTypeId const gc_mtUserCtrl    = osp::link::MachTypeReg_t::create();
 inline osp::link::MachTypeId const gc_mtMagicRocket = osp::link::MachTypeReg_t::create();
 inline osp::link::MachTypeId const gc_mtRcsDriver   = osp::link::MachTypeReg_t::create();
+inline osp::link::MachTypeId const gc_mtCharacter   = osp::link::MachTypeReg_t::create();
+
 
 constexpr osp::Vector3 gc_rocketForward{0.0f, 0.0f, 1.0f};
 
@@ -49,6 +51,26 @@ PortEntry const gc_throttleOut      { gc_ntSigFloat, 0, gc_sigOut };
 PortEntry const gc_pitchOut         { gc_ntSigFloat, 1, gc_sigOut };
 PortEntry const gc_yawOut           { gc_ntSigFloat, 2, gc_sigOut };
 PortEntry const gc_rollOut          { gc_ntSigFloat, 3, gc_sigOut };
+PortEntry const gc_jumpOut          { gc_ntSigFloat, 4, gc_sigOut };
+PortEntry const gc_crouchOut        { gc_ntSigFloat, 5, gc_sigOut };
+PortEntry const gc_walkXOut         { gc_ntSigFloat, 6, gc_sigOut };
+PortEntry const gc_walkYOut         { gc_ntSigFloat, 7, gc_sigOut };
+PortEntry const gc_walkZOut         { gc_ntSigFloat, 8, gc_sigOut };
+PortEntry const gc_flyXOut          { gc_ntSigFloat, 9, gc_sigOut };
+PortEntry const gc_flyYOut          { gc_ntSigFloat, 10, gc_sigOut };
+PortEntry const gc_flyZOut          { gc_ntSigFloat, 11, gc_sigOut };
+}
+
+namespace ports_character
+{
+PortEntry const gc_jumpIn           { gc_ntSigFloat, 0, gc_sigIn };
+PortEntry const gc_crouchIn         { gc_ntSigFloat, 1, gc_sigIn };
+PortEntry const gc_walkXIn          { gc_ntSigFloat, 2, gc_sigIn };
+PortEntry const gc_walkYIn          { gc_ntSigFloat, 3, gc_sigIn };
+PortEntry const gc_walkZIn          { gc_ntSigFloat, 4, gc_sigIn };
+PortEntry const gc_flyXIn           { gc_ntSigFloat, 5, gc_sigIn };
+PortEntry const gc_flyYIn           { gc_ntSigFloat, 6, gc_sigIn };
+PortEntry const gc_flyZIn           { gc_ntSigFloat, 7, gc_sigIn };
 }
 
 namespace ports_magicrocket
