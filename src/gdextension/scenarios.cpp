@@ -59,7 +59,7 @@ static ScenarioMap_t make_scenarios()
         scenarioMap.emplace(scenario.name, scenario);
     };
 
-    static constexpr auto sc_gravityForce = Vector3{ 0.0f, 0.0f, -9.81f };
+    static constexpr auto sc_gravityForce = Vector3{ 0.0f, 0.0f, -9.81f*3.0f };
 
     add_scenario({
         .name        = "physics",

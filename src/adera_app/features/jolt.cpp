@@ -893,13 +893,16 @@ static void character_force(BodyId const bodyId, ACtxJoltWorld const& rJolt, ent
                                    read_port(ports_character::gc_flyYIn),
                                    read_port(ports_character::gc_flyZIn)};
 
-            float const coeffX = 5.0f;
+            float const coeffX = 6.0f;
             float const coeffY = 2.0f;
 
-            float const forwardness = std::clamp(0.1f* Magnum::Math::pow(dot(vel,backwards), 2.0f) - 2.0f, 0.0f, 1.0f);
+            //float const forwardness= 1.0f;
+            //float const veeSquare = dot(vel,backwards);
 
-            float const dragX = -dot(vel,up) * forwardness * coeffX;
-            float const dragY = -dot(vel,right) * forwardness * coeffY;
+            auto const squareKeepSign = [] (float in) {return in * in * Magnum::Math::sign(in);} ;
+
+            float const dragX = -dot(vel,up)  * coeffX;
+            float const dragY = -dot(vel,right) * coeffY;
 
             Vector3 const aero = up * dragX + right * dragY;
 
@@ -928,6 +931,7 @@ static void character_force(BodyId const bodyId, ACtxJoltWorld const& rJolt, ent
             }
 
 
+            // roll towards turning direction
             if (true)
             {
                 Vector3 up = rot.transformVector(Vector3{0.0f, 1.0f, 0.0f});
