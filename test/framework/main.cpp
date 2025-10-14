@@ -54,6 +54,8 @@
 #include <osp/executor/singlethread_framework.h>
 #include <osp/framework/builder.h>
 #include <osp/util/logging.h>
+#include <osp/core/keyed_vector.h>
+#include <osp/core/math_types.h>
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 
@@ -96,6 +98,23 @@ osp::PipelineTypeInfo const gc_infoForEStgOptionalPath{
     .initialStage = osp::StageId{0}
 };
 
+using ParticleId = osp::StrongId<std::uint32_t, struct DummyForParticleId>;
+
+struct Particles
+{
+    lgrn::IdRegistryStl<ParticleId>         particleIds;
+
+    osp::KeyedVec<ParticleId, osp::Vector2> positionOf;
+
+    lgrn::IdSetStl<ParticleId>              particlesToDelete;
+};
+
+struct ParticleKinematics
+{
+    osp::KeyedVec<ParticleId, osp::Vector2> velocityOf;
+};
+
+
 struct Aquarium
 {
     int dummy = 0;
@@ -115,7 +134,7 @@ struct AquariumSharks
 // Feature Interfaces
 
 // Feature Interfaces provide a way to share Data and Pipelines between Features. Features can
-// Implement an Interface, and another Feature can DependOn it. This acts as a ayer of indirection
+// Implement an Interface, and another Feature can DependOn it. This acts as a layer of indirection
 // that prevents Features from needing to directly depend on each other, which had been messy and
 // inflexible in previous revisions of OSP.
 //

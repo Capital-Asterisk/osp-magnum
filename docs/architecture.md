@@ -85,31 +85,25 @@ function on_world_update():
 * apply_physics_thrust, play_sounds, and make_particle_effects don't modify the same data. This means they can be easily multithreaded and run in parallel.
 * Features are easier to manage from the top, instead of being the responsibility of individual objects
 
+Communication between components is achieved by sharing variables. One function writes to a value, then another function reads from it. OSP's 'framework' system can assure that tasks are run in the correct order.
 
-Communication between components is achieved by sharing variables. One function writes to a value, then another function reads from it.
+These ideas are identical to Data-oriented design and Entity Component System, but without being constrained to only entities and components.
 
+### 'Non-OOP' ways of representing objects
 
-These ideas are identical to Data-oriented design and Entity Component System, but without needing entities and components specifically.
-
-
-OSP takes these further, adding a task system to effectively compose together tasks and functions at setup/runtime, and assign dependencies between them. These unconventional techniques were heavily iterated over the years, and are needed to tackle rocket-science level complexity in the simplest way possible, while being blazingly fast.
-
-
-### Non-OOP approach
-
-
-OSP has minimal use of 'objects'. Don't expect to find a 'rocket class' anywhere. Most instances are represented by an integer ID (first instance starts at ID=0, next is 1, 2, 3, etc...). Deleted IDs are reused. Data is assigned to IDs by using them as array indices or keys to containers.
+OSP has minimal use of 'objects'. Don't expect to find a 'rocket class' or 'rocket script' anywhere. Most instances are represented by an integer ID (first instance starts at ID=0, next is 1, 2, 3, etc...). Deleted IDs are reused. Data is assigned to IDs by using them as array indices or keys to containers.
 
 ```cpp
 
 // From src/osp/activescene/active_ent.h
 // Defines an integer ID for 'Active Entity'. This is used as nodes in a scene graph hierarchy for physics and rendering.
-using ActiveEnt = StrongId<uint32_t, struct DummyForActiveEnt>;
+// Internally, this is just a single integer
+using ActiveEnt = StrongId<std::uint32_t, struct DummyForActiveEnt>;
 
 // From src/osp/activescene/basic.h
 struct ACtxBasic
 {
-    // Keeps track of which ActiveEnts exist. Use this to create and delete ActiveEnts
+    // Keeps track of which ActiveEnts are taken or free. Use this to create and delete ActiveEnts
     lgrn::IdRegistryStl<ActiveEnt>      m_activeIds;
 
     // Stores parent/child relationships between ActiveEnts
@@ -123,28 +117,43 @@ struct ACtxBasic
 
 Also expect almost every type in OSP to just be a bunch of std::vectors on the inside.
 
-One strong advantage of using IDs / array indices is that sets of objects (like `std::set<ActiveEnt>`) can be very efficiently represented by a BitVector. A handful of bytes can very efficiently represent a set of a couple thousand objects, and is fast to iterate. BitVectors are often used for dirty flags (list of which instances need to be updated) here and there.
+A strong advantage of using IDs / array indices is that a bit vectors (array of unsigned integers) can efficiently represent a sorted set of unique integers (similar to `std::set<int>`). `lgrn::IdRegistryStl` uses a bit vector internally. `lgrn::IdSetStl<IdType>` can be used as a drop-in replacement for `std::set<IdType>` for IDs.
 
 Since the BDFL uses the same techniques for different projects, this functionality has been split into a separate library, Longeron++ https://github.com/Capital-Asterisk/longeronpp
+
+### Framework and 'Features'
+
+
+Starting from an example, lets look at how 'Magic Rockets' are implemented (they're called 'magic' because they take a single float input and apply thrust without using fuel or energy).
+
+
+* From `src/adera/machines/links.h`, there exists
+  ```
+  inline osp::link::MachTypeId const gc_mtMagicRocket = osp::link::MachTypeReg_t::create();
+  ```
+  links.h describes a magic rocket as a "Machine" with float inputs `gc_throttleIn` and `gc_multiplierIn`. "Machines" are like electronic components in a logic circuit simulator, with inputs and outputs that can be connected together as part of the 'link' system. The link system currently only supports 'float signals' but in the future is designed to handle fuel, electricity, other fluid flow, structural connections, and any 
+
+a `osp::link::MachTypeId`
+
+ftrMachMagicRockets
+ 
+
+
+
+instead of a rocket feature, we have rocket phy
+
+other weird notes:
+* There is no defined start and end of the 'current frame'. The framework's 'task graph' topology is cylindrical: the end of the current frame IS the start of the next frame. This can get quite confusing but 
+
+
+openning a window creates a Window context 
+
+OSP takes these further using its 'framework', which can compose together required data and functions (tasks) at setup/runtime, and assign dependencies between them. These unconventional techniques were heavily iterated over the years, and are needed to tackle rocket-science level complexity in the simplest way possible, while being blazingly fast.
+
+
 
 ## Testapp code
 
 Everything in `src/osp` is practically a library. `src/testapp` is the application that uses this library to make the test scenarios.
-
-### Top Tasks, Top Data, and Pipelines
-
-`src/testapp/testapp.h` features `TestApp` and `TestAppTasks`. This is stored in main.cpp as `g_testApp`. `TestAppTasks` holds "TopData" and "TopTasks". TopData refers to an std::vector of arbitrary types that can be indexed to with a TopDataId, and are passed to TopTasks as function arguments. Tasks set dependencies between each other based on how they read/write to certain variables. Not going too in depth with this for now, but variables are roughly associated with a "Pipeline" containing "Stages" that Top Tasks can 'sync' to. This allows an executor to know which tasks to run in series or parallel (only a single threaded executor is implemented for now).
-
-eg: A queue variable can be associated with a pipeline with stages \[Write,Read,Clear\]. Task A syncs with Write, Task B syncs with Read, Task C syncs with Clear. An executable would now know to run these tasks in series A -> B -> C.
-
-there's a few other capabilities in there that allow it to do a main loop effectively.
-
-### Sessions and scenarios
-
-The test scenarios are composed by throwing together tasks, data, and pipelines. Groups of tasks, data, and pipelines that support a single 'feature' are referred to as a `Session`. `testapp/scenarios.cpp` calls a whole bunch of `setup_*` functions that each create sessions.
-
-A simple example of what these do is the dropper session:  `testapp/sessions/shapes.cpp setup_droppers(builder, rTopData, scene, commonScene, physShapes)`
-
-This session depends on data from the commonScene session and physShapes session. It adds floats as TopData to use as timers, and adds tasks to increment the timers and spawn shapes.
 
 

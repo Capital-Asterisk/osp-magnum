@@ -16,7 +16,7 @@ os.mkfifo(path, mode=0o777)
 print(f"FIFO created at {path}\n")
 
 
-graph_regex = re.compile(r"<(NEW|UPDATE)_GRAPH>\n([0-9]+)ns\n(.*?)</(NEW|UPDATE)_GRAPH>", re.DOTALL)
+graph_regex = re.compile(r"<(NEW|UPDATE)_GRAPH>\n([0-9]+)\n(.*?)</(NEW|UPDATE)_GRAPH>", re.DOTALL)
 
 buffer = ""
 latest_graph_data = ""

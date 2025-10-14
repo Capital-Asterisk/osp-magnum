@@ -120,10 +120,11 @@ int main(int argc, char** argv)
     // Setup logging
     auto pSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     pSink->set_pattern("[%T.%e] [%n] [%^%l%$] [%s:%#] %v");
+    pSink->set_level(spdlog::level::trace);
     g_mainThreadLogger  = std::make_shared<spdlog::logger>("main-thread", pSink);
     g_logExecutor       = std::make_shared<spdlog::logger>("executor", pSink);
     g_logMagnumApp      = std::make_shared<spdlog::logger>("flight", std::move(pSink));
-
+    g_logExecutor->set_level(spdlog::level::trace);
 
     // Set thread-local logger used by OSP_LOG_* macros
     osp::set_thread_logger(g_mainThreadLogger);
@@ -211,12 +212,11 @@ IMainLoopFunc::Status DefaultMainLoop::run(osp::fw::Framework &rFW, osp::fw::IEx
 {
     IMainLoopFunc::Status status;
 
-    auto const mainApp        = rFW.get_interface<FIMainApp>(g_mainContext);
-    auto       &rMainLoopCtrl = rFW.data_get<MainLoopControl&>(mainApp.di.mainLoopCtrl);
-    auto       &rFWModify     = rFW.data_get<FrameworkModify&>(mainApp.di.frameworkModify);
+    auto const mainApp = rFW.get_interface<FIMainApp>(g_mainContext);
 
-    if (rFWModify.commands.empty())
+    if (rFW.data_get<FrameworkModify&>(mainApp.di.frameworkModify).commands.empty())
     {
+        auto &rMainLoopCtrl = rFW.data_get<MainLoopControl&>(mainApp.di.mainLoopCtrl);
         rExecutor.wait(rFW);
         if (rMainLoopCtrl.keepOpenWaiting)
         {
@@ -228,15 +228,18 @@ IMainLoopFunc::Status DefaultMainLoop::run(osp::fw::Framework &rFW, osp::fw::IEx
     {
         // Framework modify commands exist. Stop the main loop
 
-        while (!rMainLoopCtrl.mainScheduleWaiting)
         {
-            rExecutor.wait(rFW);
-
-            if (rMainLoopCtrl.keepOpenWaiting)
+            auto &rMainLoopCtrl = rFW.data_get<MainLoopControl&>(mainApp.di.mainLoopCtrl);
+            while (!rMainLoopCtrl.mainScheduleWaiting)
             {
-                rMainLoopCtrl.keepOpenWaiting = false;
-                rExecutor.task_finish(rFW, mainApp.tasks.keepOpen, true, {.cancel = true});
                 rExecutor.wait(rFW);
+
+                if (rMainLoopCtrl.keepOpenWaiting)
+                {
+                    rMainLoopCtrl.keepOpenWaiting = false;
+                    rExecutor.task_finish(rFW, mainApp.tasks.keepOpen, true, {.cancel = true});
+                    rExecutor.wait(rFW);
+                }
             }
         }
 
@@ -246,20 +249,26 @@ IMainLoopFunc::Status DefaultMainLoop::run(osp::fw::Framework &rFW, osp::fw::IEx
             std::abort();
         }
 
-        for (std::unique_ptr<IFrameworkModifyCommand> &pCmd : rFWModify.commands)
         {
-            pCmd->run(rFW);
-
-            std::unique_ptr<IMainLoopFunc> newMainLoop = pCmd->main_loop();
-
-            if (newMainLoop != nullptr)
+            // Careful, no borrow checker! Don't use a reference here as framework modify commands
+            // can modify framework data, invalidating references
+            auto const commandVec = std::exchange(rFW.data_get<FrameworkModify&>(mainApp.di.frameworkModify).commands, {});
+            for (std::unique_ptr<IFrameworkModifyCommand> const &pCmd : commandVec)
             {
-                LGRN_ASSERTM(status.pushNew == nullptr,
-                             "multiple framework modify are fighting to add main loop function");
-                status.pushNew = std::move(newMainLoop);
+                pCmd->run(rFW);
+
+                std::unique_ptr<IMainLoopFunc> newMainLoop = pCmd->main_loop();
+
+                if (newMainLoop != nullptr)
+                {
+                    LGRN_ASSERTM(status.pushNew == nullptr,
+                                 "multiple framework modify are fighting to add main loop function");
+                    status.pushNew = std::move(newMainLoop);
+                }
             }
         }
-        rFWModify.commands.clear();
+
+        auto &rMainLoopCtrl = rFW.data_get<MainLoopControl&>(mainApp.di.mainLoopCtrl);
 
         // Restart framework main loop
         rExecutor.load(rFW);

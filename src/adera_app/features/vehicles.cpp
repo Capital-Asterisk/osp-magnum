@@ -96,18 +96,6 @@ FeatureDef const ftrParts = feature_def("Parts", [] (
     rLinks.nodePerType     .resize(NodeTypeReg_t::size());
 
     rFB.task()
-        .name       ("Clear Resource owners")
-        .sync_with  ({cleanup.pl.cleanup(Run_)})
-        .args       ({      parts.di.scnParts,  mainApp.di.resources})
-        .func       ([] (ACtxParts& rScnParts, Resources& rResources) noexcept
-    {
-        for (osp::PrefabPair &rPrefabPair : rScnParts.partPrefabs)
-        {
-            rResources.owner_destroy(gc_importer, std::move(rPrefabPair.m_importer));
-        }
-    });
-
-    rFB.task()
         .name       ("Clear Part dirty vectors after use")
         .sync_with  ({parts.pl.partDirty(Clear)})
         .args       ({      parts.di.scnParts})

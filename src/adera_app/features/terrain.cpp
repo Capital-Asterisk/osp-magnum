@@ -661,7 +661,7 @@ FeatureDef const ftrTerrainDebugDraw = feature_def("TerrainDebugDraw", [] (
 
         Vector3 &rCamPos = rCamCtrl.m_target.value();
 
-        constexpr float maxDist = 65565.0f;
+        constexpr float maxDist = 2048.0f*32.0f;
 
         // Do a floating origin translation if required
 

@@ -45,7 +45,7 @@ struct ACtxTerrainFrame
 {
     /// Position of scene's (0, 0, 0) origin point from the terrain's frame of reference.
     osp::Vector3l       position;
-    osp::Quaterniond    rotation;
+    // osp::Quaterniond    rotation; // TODO
     bool                active      {false};
 };
 

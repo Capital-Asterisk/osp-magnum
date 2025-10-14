@@ -87,11 +87,11 @@ enum class EStgCont : uint8_t
     Resize_     = 1,
     ///< Resize the container to fit more elements
 
-    New         = 2,
-    ///< Add new elements
-
-    Modify      = 3,
+    Modify      = 2,
     ///< Modify existing elements
+
+    New         = 3,
+    ///< Add new elements
 
     ScheduleC   = 4,
 
@@ -290,8 +290,10 @@ struct FICommonScene {
         PipelineDef<EStgIntr> activeEntDelete   {"activeEntDelete"};
         PipelineDef<EStgIntr> subtreeRootDel    {"subtreeRootDel"};
 
-        PipelineDef<EStgCont> transform         {"transform         - ACtxBasic::m_transform"};
-        PipelineDef<EStgCont> hierarchy         {"hierarchy         - ACtxBasic::m_scnGraph"};
+        PipelineDef<EStgCont> transform         {"transform"};          ///< ACtxBasic::m_activeIds
+        PipelineDef<EStgCont> hierarchy         {"hierarchy"};          ///< ACtxBasic::m_scnGraph
+
+        PipelineDef<EStgIntr> translateOrigin   {"translateOrigin"};    ///< ACtxBasic::m_translateOrigin
 
         /// drawing.m_meshIds
         PipelineDef<EStgCont> meshIds           {"meshIds"};
@@ -501,20 +503,133 @@ struct FISignalsFloat {
 };
 
 
-//#define TESTAPP_DATA_NEWTON 1, \
-//    idNwt
-//struct PlNewton
-//{
-//    PipelineDef<EStgCont> nwtBody           {"nwtBody"};
-//};
+struct FITerrain {
+    struct DataIds {
+        DataId terrainFrame;
+        DataId terrain;
+    };
 
-//#define TESTAPP_DATA_NEWTON_FORCES 1, \
-//    idNwtFactors
+    struct Pipelines {
+        PipelineDef<EStgCont> skeleton          {"skeleton"};
+        PipelineDef<EStgIntr> surfaceChanges    {"surfaceChanges"}; ///< SkeletonSubdivScratchpad surfaceAdded and surfaceRemoved
+        PipelineDef<EStgCont> chunkMesh         {"chunkMesh"};
+        PipelineDef<EStgCont> terrainFrame      {"terrainFrame"};
+    };
+};
 
 
+struct FITerrainIco {
+    struct DataIds {
+        DataId terrainIco;
+    };
 
-//#define TESTAPP_DATA_NEWTON_ACCEL 1, \
-//    idAcceleration
+    struct Pipelines { };
+};
+
+
+struct FITerrainDbgDraw {
+    struct DataIds {
+        DataId draw;
+    };
+
+    struct Pipelines { };
+};
+
+
+//-----------------------------------------------------------------------------
+
+// Universe sessions
+
+struct FIUniCore {
+    struct DataIds {
+        DataId coordSpaces;
+        DataId compTypes;
+        DataId dataAccessors;
+        DataId stolenSats;
+        DataId dataSrcs;
+        DataId satInst;
+        DataId simulations;
+    };
+
+    struct Pipelines {
+        PipelineDef<EStgOptn> update            {"update"};
+        PipelineDef<EStgCont> satIds            {"satIds"};
+        PipelineDef<EStgIntr> transfer          {"transfer"};
+        PipelineDef<EStgCont> cospaceTransform  {"cospaceTransform"};
+        PipelineDef<EStgCont> accessorsOfCospace{"accessorsOfCospace"};
+        PipelineDef<EStgCont> accessorIds       {"accessorIds"};
+        PipelineDef<EStgCont> accessors         {"accessors"};
+        PipelineDef<EStgIntr> accessorDelete    {"accessorDelete"};
+        PipelineDef<EStgCont> stolenSats        {"stolenSats"};
+        PipelineDef<EStgCont> datasrcIds        {"datasrcIds"};
+        PipelineDef<EStgCont> datasrcs          {"datasrcs"};
+        PipelineDef<EStgCont> datasrcOf         {"datasrcOf"};
+        PipelineDef<EStgIntr> datasrcChanges    {"datasrcChanges"};
+        PipelineDef<EStgCont> simTimeBehindBy   {"simTimeBehindBy"};
+    };
+};
+
+struct FIUniTransfers {
+    struct DataIds {
+        DataId intakes;
+        DataId transferBufs;
+    };
+
+    struct Pipelines {
+        PipelineDef<EStgIntr> requests          {"requests"};
+        PipelineDef<EStgIntr> requestAccessorIds{"requestAccessorIds"};
+        PipelineDef<EStgCont> midTransfer       {"midTransfer"};
+        PipelineDef<EStgIntr> midTransferDelete {"midTransferDelete"};
+    };
+};
+
+struct FIUniScenes {
+    struct DataIds {
+        DataId scenes;
+    };
+
+    struct Pipelines {
+        PipelineDef<EStgIntr> requestTranslate  {"requestTranslate"};
+    };
+};
+
+struct FISceneInUniverse {
+    struct DataIds {
+        DataId sceneId;
+    };
+
+    struct Pipelines {
+        //PipelineDef<EStgCont> sceneFrame        {"sceneFrame"};
+    };
+};
+
+
+//-----------------------------------------------------------------------------
+
+// Solar System sessions
+
+struct FISolarSys {
+    struct DataIds {
+        DataId planetMainSpace;
+        DataId satSurfaceSpaces;
+        DataId coordNBody;
+    };
+
+    struct Pipelines { };
+};
+
+struct FISolarSysDraw {
+    struct DataIds {
+        DataId planetDraw;
+    };
+
+    struct Pipelines { };
+};
+
+//-----------------------------------------------------------------------------
+
+// Jolt Physics
+
 
 struct FIJolt {
     struct DataIds {
@@ -552,15 +667,6 @@ struct FIJoltConstAccel {
     struct Pipelines { };
 };
 
-//struct FIRocketsNwt {
-//    struct DataIds {
-//        DataId rocketsNwt;
-//    };
-
-//    struct Pipelines { };
-//};
-
-
 struct FIRocketsJolt {
     struct DataIds {
         DataId rocketsJolt;
@@ -570,122 +676,14 @@ struct FIRocketsJolt {
     struct Pipelines { };
 };
 
-
-struct FITerrain {
+struct FITerrainJolt {
     struct DataIds {
-        DataId terrainFrame;
-        DataId terrain;
-    };
-
-    struct Pipelines {
-        PipelineDef<EStgCont> skeleton          {"skeleton"};
-        PipelineDef<EStgIntr> surfaceChanges    {"surfaceChanges"};
-        PipelineDef<EStgCont> chunkMesh         {"chunkMesh"};
-        PipelineDef<EStgCont> terrainFrame      {"terrainFrame"};
-    };
-};
-
-struct FITerrainIco {
-    struct DataIds {
-        DataId terrainIco;
+        DataId terrainJolt;
     };
 
     struct Pipelines { };
 };
 
-struct FITerrainDbgDraw {
-    struct DataIds {
-        DataId draw;
-    };
-
-    struct Pipelines { };
-};
-
-
-
-
-//-----------------------------------------------------------------------------
-
-// Universe sessions
-
-struct FIUniCore {
-    struct DataIds {
-        DataId coordSpaces;
-        DataId compTypes;
-        DataId dataAccessors;
-        DataId stolenSats;
-        DataId dataSrcs;
-        DataId satInst;
-        DataId simulations;
-    };
-
-    struct Pipelines {
-        PipelineDef<EStgOptn> update            {"update"};
-        PipelineDef<EStgCont> satIds            {"satIds"};
-        PipelineDef<EStgIntr> transfer          {"transfer"};
-        PipelineDef<EStgCont> cospaceTransform  {"cospaceTransform"};
-        PipelineDef<EStgCont> accessorsOfCospace{"accessorsOfCospace"};
-        PipelineDef<EStgCont> accessorIds       {"accessorIds"};
-        PipelineDef<EStgCont> accessors         {"accessors"};
-        PipelineDef<EStgIntr> accessorDelete    {"accessorDelete"};
-        PipelineDef<EStgCont> stolenSats        {"stolenSats"};
-        PipelineDef<EStgCont> datasrcIds        {"datasrcIds"};
-        PipelineDef<EStgCont> datasrcs          {"datasrcs"};
-        PipelineDef<EStgCont> datasrcOf         {"datasrcOf"};
-        PipelineDef<EStgIntr> datasrcChanges    {"datasrcChanges"};
-        PipelineDef<EStgCont> simTimeBehindBy   {"simTimeBehindBy"};
-
-    };
-};
-
-struct FIUniTransfers {
-    struct DataIds {
-        DataId intakes;
-        DataId transferBufs;
-    };
-
-    struct Pipelines {
-        PipelineDef<EStgIntr> requests          {"requests"};
-        PipelineDef<EStgIntr> requestAccessorIds{"requestAccessorIds"};
-        PipelineDef<EStgCont> midTransfer       {"midTransfer"};
-        PipelineDef<EStgIntr> midTransferDelete {"midTransferDelete"};
-    };
-};
-
-struct FISceneInUniverse {
-    struct DataIds {
-        DataId scnCospace;
-    };
-
-    struct Pipelines {
-        //PipelineDef<EStgCont> sceneFrame        {"sceneFrame"};
-    };
-};
-
-
-
-
-//-----------------------------------------------------------------------------
-
-// Solar System sessions
-
-struct FISolarSys {
-    struct DataIds {
-        DataId planetMainSpace;
-        DataId satSurfaceSpaces;
-        DataId coordNBody;
-    };
-
-    struct Pipelines { };
-};
-
-struct FISolarSysDraw {
-    struct DataIds {
-        DataId planetDraw;
-    };
-
-    struct Pipelines { };
-};
 
 //-----------------------------------------------------------------------------
 

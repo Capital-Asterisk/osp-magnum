@@ -142,6 +142,7 @@ FeatureDef const ftrCommonScene = feature_def("CommonScene", [] (
     rFB.pipeline(comScn.pl.subtreeRootDel)      .parent(mainApp.loopblks.mainLoop).initial_stage(UseOrRun);
     rFB.pipeline(comScn.pl.transform)           .parent(mainApp.loopblks.mainLoop);
     rFB.pipeline(comScn.pl.hierarchy)           .parent(mainApp.loopblks.mainLoop);
+    rFB.pipeline(comScn.pl.translateOrigin)     .parent(mainApp.loopblks.mainLoop);
     rFB.pipeline(comScn.pl.meshIds)             .parent(mainApp.loopblks.mainLoop);
     rFB.pipeline(comScn.pl.texIds)              .parent(mainApp.loopblks.mainLoop);
     rFB.pipeline(comScn.pl.texToRes)            .parent(mainApp.loopblks.mainLoop);

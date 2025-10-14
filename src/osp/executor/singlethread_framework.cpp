@@ -24,7 +24,12 @@
  */
 #include "singlethread_framework.h"
 
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 #include <spdlog/spdlog.h>
+
+//#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+
 
 namespace osp::exec
 {

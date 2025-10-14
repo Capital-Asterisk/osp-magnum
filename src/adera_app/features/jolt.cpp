@@ -37,7 +37,12 @@
 
 #include <adera/machines/links.h>
 
+#include <planet-a/activescene/terrain.h>
+
 #include <ospjolt/activescene/joltinteg_fn.h>
+
+#include <Jolt/Physics/Collision/Shape/TriangleShape.h>
+#include <Jolt/Physics/Collision/Shape/ConvexHullShape.h>
 
 using namespace ftr_inter::stages;
 using namespace ftr_inter;
@@ -46,6 +51,9 @@ using namespace osp::fw;
 using namespace osp::link;
 using namespace osp;
 using namespace ospjolt;
+
+
+using ospjolt::ACtxJoltWorld;
 
 using Corrade::Containers::arrayView;
 using osp::restypes::gc_importer;
@@ -62,16 +70,16 @@ FeatureDef const ftrJolt = feature_def("Jolt", [] (
         DependOn<FICommonScene>     comScn,
         DependOn<FIPhysics>         phys)
 {
-    //Mandatory Jolt setup steps (start of program)
-    ACtxJoltWorld::initJoltGlobal();
-    JPH_IF_ENABLE_ASSERTS(AssertFailed = AssertFailedImpl;)
+    using ospjolt::SysJolt;
 
+    //Mandatory Jolt setup steps (start of program)
+    JoltGlobalInit::init_if_required();
+    JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = AssertFailedImpl;)
 
     rFB.pipeline(jolt.pl.joltBody).parent(mainApp.loopblks.mainLoop);
 
-    rFB.data_emplace< ACtxJoltWorld >(jolt.di.jolt, 2);
-
-    using ospjolt::SysJolt;
+    auto &rJolt = rFB.data_emplace< ACtxJoltWorld >(jolt.di.jolt);
+    setup_jolt_world(rJolt);
 
     rFB.task()
         .name       ("Delete Jolt components")
@@ -84,14 +92,13 @@ FeatureDef const ftrJolt = feature_def("Jolt", [] (
 
     rFB.task()
         .name       ("Update Jolt world")
-        .sync_with  ({jolt.pl.joltBody(Ready), comScn.pl.hierarchy(Ready), phys.pl.physBody(Ready), phys.pl.physUpdate(Run), comScn.pl.transform(Modify)})
+        .sync_with  ({jolt.pl.joltBody(Ready), comScn.pl.translateOrigin(UseOrRun), comScn.pl.hierarchy(Ready), phys.pl.physBody(Ready), phys.pl.physUpdate(Run), comScn.pl.transform(Modify)})
         .args({             comScn.di.basic,             phys.di.phys,              jolt.di.jolt,           scn.di.deltaTimeIn })
         .func([] (ACtxBasic& rBasic, ACtxPhysics& rPhys, ACtxJoltWorld& rJolt, float const deltaTimeIn) noexcept
     {
-        SysJolt::update_world(rPhys, rJolt, deltaTimeIn, rBasic.m_transform);
+        rBasic.m_translateOrigin.z() -= 0.0005;
+        SysJolt::update_world(rBasic, rPhys, rJolt, deltaTimeIn);
     });
-
-    rFB.data_emplace< ACtxJoltWorld >(jolt.di.jolt, 2);
 }); // ftrJolt
 
 
@@ -115,12 +122,11 @@ ForceFactors_t add_constant_acceleration(
 
     ACtxJoltWorld::ForceFactorFunc factor
     {
-        .m_func = [] (BodyId const bodyId, ACtxJoltWorld const& rJolt, entt::any userData, Vector3& rForce, Vector3& rTorque) noexcept
+        .m_func = [] (BodyId const bodyId, ACtxJoltWorld const &rJolt, entt::any userData, Vector3& rForce, Vector3& rTorque) noexcept
         {
             Vector3 const force = entt::any_cast<Vector3>(userData);
-            PhysicsSystem *pJoltWorld = rJolt.m_pPhysicsSystem.get();
 
-            float inv_mass = SysJolt::get_inverse_mass_no_lock(*pJoltWorld, bodyId);
+            float inv_mass = SysJolt::get_inverse_mass_no_lock(rJolt.m_physicsSystem, bodyId);
 
             rForce += force / inv_mass;
         },
@@ -158,8 +164,7 @@ FeatureDef const ftrPhysicsShapesJolt = feature_def("PhysicsShapesJolt", [] (
         .args       ({           comScn.di.basic,    physShapes.di.physShapes,       phys.di.phys,         jolt.di.jolt,    physShapesJolt.di.factors})
         .func       ([] (ACtxBasic const &rBasic, ACtxPhysShapes& rPhysShapes, ACtxPhysics& rPhys, ACtxJoltWorld& rJolt, ForceFactors_t const factors) noexcept
     {
-        PhysicsSystem *pJoltWorld = rJolt.m_pPhysicsSystem.get();
-        BodyInterface &bodyInterface = pJoltWorld->GetBodyInterface();
+        JPH::BodyInterface &bodyInterface = rJolt.m_physicsSystem.GetBodyInterface();
 
         int numBodies = static_cast<int>(rPhysShapes.m_spawnRequest.size());
 
@@ -174,29 +179,30 @@ FeatureDef const ftrPhysicsShapesJolt = feature_def("PhysicsShapesJolt", [] (
             ActiveEnt const root    = rPhysShapes.m_ents[i * 2];
             ActiveEnt const child   = rPhysShapes.m_ents[i * 2 + 1];
 
-            Ref<Shape> pShape = SysJolt::create_primitive(rJolt, spawn.m_shape, Vec3MagnumToJolt(spawn.m_size));
+            JPH::Ref<JPH::Shape> pShape = SysJolt::create_primitive(rJolt, spawn.m_shape, Vec3MagnumToJolt(spawn.m_size));
             
             BodyId const bodyId = rJolt.m_bodyIds.create();
             SysJolt::resize_body_data(rJolt);
 
-            BodyCreationSettings bodyCreation(pShape, 
+            JPH::BodyCreationSettings bodyCreation(pShape,
                                             Vec3MagnumToJolt(spawn.m_position), 
-                                            Quat::sIdentity(), 
-                                            EMotionType::Dynamic, 
+                                            JPH::Quat::sIdentity(),
+                                            JPH::EMotionType::Dynamic,
                                             Layers::MOVING);
-            
+            bodyCreation.mMaxLinearVelocity = 65536.0f;
+
             if (spawn.m_mass > 0.0f) 
             { 
-                MassProperties massProp;
+                JPH::MassProperties massProp;
                 Vector3 const inertia = collider_inertia_tensor(spawn.m_shape, spawn.m_size, spawn.m_mass);
                 massProp.mMass = spawn.m_mass; 
-                massProp.mInertia = Mat44::sScale(Vec3MagnumToJolt(inertia));
+                massProp.mInertia = JPH::Mat44::sScale(Vec3MagnumToJolt(inertia));
                 bodyCreation.mMassPropertiesOverride = massProp;
-                bodyCreation.mOverrideMassProperties = EOverrideMassProperties::MassAndInertiaProvided;
+                bodyCreation.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
             }
             else
             {   
-                bodyCreation.mMotionType = EMotionType::Static;
+                bodyCreation.mMotionType = JPH::EMotionType::Static;
                 bodyCreation.mObjectLayer = Layers::MOVING;
             }
             //TODO helper function ? 
@@ -211,8 +217,8 @@ FeatureDef const ftrPhysicsShapesJolt = feature_def("PhysicsShapesJolt", [] (
 
         }
         //Bodies are added all at once for performance reasons.
-        BodyInterface::AddState addState = bodyInterface.AddBodiesPrepare(addedBodies.data(), numBodies);
-        bodyInterface.AddBodiesFinalize(addedBodies.data(), numBodies, addState, EActivation::Activate);
+        JPH::BodyInterface::AddState addState = bodyInterface.AddBodiesPrepare(addedBodies.data(), numBodies);
+        bodyInterface.AddBodiesFinalize(addedBodies.data(), numBodies, addState, JPH::EActivation::Activate);
     });
 
 }); // ftrPhysicsShapesJolt
@@ -234,14 +240,14 @@ void compound_collect_recurse(
         ACtxBasic const&        rBasic,
         ActiveEnt               ent,
         Matrix4 const&          transform,
-        CompoundShapeSettings&  rCompound)
+        JPH::CompoundShapeSettings&  rCompound)
 {
     EShape const shape = rCtxPhys.m_shape[ent];
 
     if (shape != EShape::None)
     {
         bool entExists = rCtxWorld.m_shapes.contains(ent);
-        Ref<Shape> rShape = entExists
+        JPH::Ref<JPH::Shape> rShape = entExists
                                ? rCtxWorld.m_shapes.get(ent)
                                : rCtxWorld.m_shapes.emplace(ent);
 
@@ -395,8 +401,7 @@ FeatureDef const ftrVehicleSpawnJolt = feature_def("VehicleSpawnJolt", [] (
         auto const& itWeldOffsetsLast   = std::end(rVehicleSpawn.spawnedWeldOffsets);
         auto itWeldOffsets              = std::begin(rVehicleSpawn.spawnedWeldOffsets);
 
-        PhysicsSystem *pJoltWorld = rJolt.m_pPhysicsSystem.get();
-        BodyInterface &bodyInterface = pJoltWorld->GetBodyInterface();
+        JPH::BodyInterface &bodyInterface = rJolt.m_physicsSystem.GetBodyInterface();
 
         std::vector<JPH::BodyID> addedBodies;
 
@@ -413,15 +418,16 @@ FeatureDef const ftrVehicleSpawnJolt = feature_def("VehicleSpawnJolt", [] (
             {
                 ActiveEnt const weldEnt = rScnParts.weldToActive[weld];
 
-                MutableCompoundShapeSettings compound;
+                JPH::MutableCompoundShapeSettings compound;
 
                 rPhys.m_hasColliders.insert(weldEnt);
 
                 // Collect all colliders from hierarchy.
                 compound_collect_recurse( rPhys, rJolt, rBasic, weldEnt, Matrix4{}, compound );
 
-                Ref<Shape> compoundShape = compound.Create().Get();
-                BodyCreationSettings bodyCreation(compoundShape, Vec3Arg::sZero(), Quat::sZero(), EMotionType::Dynamic, Layers::MOVING);
+                JPH::Ref<JPH::Shape> compoundShape = compound.Create().Get();
+                JPH::BodyCreationSettings bodyCreation(compoundShape, JPH::Vec3Arg::sZero(), JPH::Quat::sZero(), JPH::EMotionType::Dynamic, Layers::MOVING);
+                bodyCreation.mMaxLinearVelocity = 65536.0f;
 
                 BodyId const bodyId = rJolt.m_bodyIds.create();
                 SysJolt::resize_body_data(rJolt);
@@ -442,12 +448,12 @@ FeatureDef const ftrVehicleSpawnJolt = feature_def("VehicleSpawnJolt", [] (
 
                 Matrix4 const inertiaTensorMat4{inertiaTensor};
 
-                MassProperties massProp;
+                JPH::MassProperties massProp;
                 massProp.mMass = totalMass;
-                massProp.mInertia = Mat44::sLoadFloat4x4((Float4*) inertiaTensorMat4.data());
+                massProp.mInertia = JPH::Mat44::sLoadFloat4x4((JPH::Float4*) inertiaTensorMat4.data());
 
                 bodyCreation.mMassPropertiesOverride = massProp;
-                bodyCreation.mOverrideMassProperties = EOverrideMassProperties::MassAndInertiaProvided;
+                bodyCreation.mOverrideMassProperties = JPH::EOverrideMassProperties::MassAndInertiaProvided;
 
                 bodyCreation.mLinearDamping = 0.0f;
                 bodyCreation.mAngularDamping = 0.0f;
@@ -455,12 +461,11 @@ FeatureDef const ftrVehicleSpawnJolt = feature_def("VehicleSpawnJolt", [] (
                 bodyCreation.mPosition = Vec3MagnumToJolt(toInit.position);
 
                 auto rawQuat = toInit.rotation.data();
-                Quat joltRotation(rawQuat[0], rawQuat[1], rawQuat[2], rawQuat[3]);
+                JPH::Quat joltRotation(rawQuat[0], rawQuat[1], rawQuat[2], rawQuat[3]);
     
                 bodyCreation.mRotation = joltRotation;
 
-                PhysicsSystem *pJoltWorld = rJolt.m_pPhysicsSystem.get();
-                BodyInterface &bodyInterface = pJoltWorld->GetBodyInterface();
+                JPH::BodyInterface &bodyInterface = rJolt.m_physicsSystem.GetBodyInterface();
                 JPH::BodyID joltBodyId = BToJolt(bodyId);
                 bodyInterface.CreateBodyWithID(joltBodyId, bodyCreation);
                 addedBodies.push_back(joltBodyId);
@@ -471,8 +476,8 @@ FeatureDef const ftrVehicleSpawnJolt = feature_def("VehicleSpawnJolt", [] (
         }
         //Bodies are added all at once for performance reasons.
         int numBodies = static_cast<int>(addedBodies.size());
-        BodyInterface::AddState addState = bodyInterface.AddBodiesPrepare(addedBodies.data(), numBodies);
-        bodyInterface.AddBodiesFinalize(addedBodies.data(), numBodies, addState, EActivation::Activate);
+        JPH::BodyInterface::AddState addState = bodyInterface.AddBodiesPrepare(addedBodies.data(), numBodies);
+        bodyInterface.AddBodiesFinalize(addedBodies.data(), numBodies, addState, JPH::EActivation::Activate);
     });
 }); // ftrVehicleSpawnJolt
 
@@ -621,9 +626,8 @@ static void rocket_thrust_force(BodyId const bodyId, ACtxJoltWorld const& rJolt,
     auto const [rRocketsJolt, rMachines, rSigValFloat] = entt::any_cast<RocketThrustUserData>(userData);
     auto &rBodyRockets = rRocketsJolt.m_bodyRockets[bodyId.value];
 
-    PhysicsSystem *pJoltWorld = rJolt.m_pPhysicsSystem.get();
     //no lock as all bodies are locked in callbacks
-    BodyInterface &bodyInterface = pJoltWorld->GetBodyInterfaceNoLock();
+    JPH::BodyInterface const &bodyInterface = rJolt.m_physicsSystem.GetBodyInterfaceNoLock();
 
     if (rBodyRockets.empty())
     {
@@ -632,8 +636,13 @@ static void rocket_thrust_force(BodyId const bodyId, ACtxJoltWorld const& rJolt,
 
     JPH::BodyID joltBodyId = BToJolt(bodyId);
     Quaternion const rot = QuatJoltToMagnum(bodyInterface.GetRotation(joltBodyId));
-    RVec3 joltCOM = bodyInterface.GetCenterOfMassPosition(joltBodyId) - bodyInterface.GetPosition(joltBodyId);
-    Vector3 com = Vec3JoltToMagnum(joltCOM);
+
+    JPH::Shape const* shape = bodyInterface.GetShape(joltBodyId).GetPtr();
+    if (shape == nullptr)
+    {
+        return;
+    }
+    Vector3 com = Vec3JoltToMagnum(shape->GetCenterOfMass());
 
     for (BodyRocket const& bodyRocket : rBodyRockets)
     {
@@ -715,6 +724,149 @@ FeatureDef const ftrRocketThrustJolt = feature_def("RocketThrustJolt", [] (
 
     rRocketsJolt.factorIndex = static_cast<std::uint8_t>(index);
 }); // ftrRocketThrustJolt
+
+struct ACtxTerrainJolt
+{
+    BodyId bodyId;
+    JPH::Ref<JPH::MutableCompoundShape> shape;
+
+
+    // useful for when translating everything for MutableCompountShape::ModifyShapes
+    std::vector<JPH::Vec3> asd;
+};
+
+FeatureDef const ftrTerrainJolt = feature_def("ftrTerrainJolt", [] (
+        FeatureBuilder              &rFB,
+        Implement<FITerrainJolt>    terrainJolt,
+        DependOn<FITerrain>         terrain,
+        DependOn<FICommonScene>     comScn,
+        DependOn<FIPhysics>         phys,
+        DependOn<FIJolt>            jolt)
+{
+    using namespace planeta;
+
+    auto &rTerrainJolt  = rFB.data_emplace<ACtxTerrainJolt>(terrainJolt.di.terrainJolt);
+    auto &rJolt         = rFB.data_get<ACtxJoltWorld>(jolt.di.jolt);
+
+
+
+    //JPH::Ref<JPH::Shape> pShape = SysJolt::create_primitive(rJolt, EShape::Sphere, JPH::Vec3(1.0, 1.0, 1.0));
+
+    JPH::MutableCompoundShapeSettings asdf;
+
+    //asdf.AddShape(JPH::Vec3(0, 0, 0), JPH::Quat::sIdentity(), pShape, 0);
+
+    rTerrainJolt.shape = static_cast<JPH::MutableCompoundShape*>(asdf.Create().Get().GetPtr());
+
+    JPH::BodyInterface      &bodyInterface  = rJolt.m_physicsSystem.GetBodyInterface();
+
+    rTerrainJolt.bodyId = rJolt.m_bodyIds.create();
+    SysJolt::resize_body_data(rJolt);
+    JPH::BodyID joltBodyId = BToJolt(rTerrainJolt.bodyId);
+
+    JPH::BodyCreationSettings bodyCreation(rTerrainJolt.shape, JPH::Vec3(0.0f, 0.0f, 0.0f), JPH::Quat::sIdentity(), JPH::EMotionType::Static, Layers::NON_MOVING);
+    bodyInterface.CreateBodyWithID(joltBodyId, bodyCreation);
+    bodyCreation.mEnhancedInternalEdgeRemoval = true;
+
+    JPH::BodyInterface::AddState addState = bodyInterface.AddBodiesPrepare(&joltBodyId, 1);
+    bodyInterface.AddBodiesFinalize(&joltBodyId, 1, addState, JPH::EActivation::Activate);
+
+    // terrain.pl.surfaceChanges(UseOrRun)
+    //                        MutableCompoundShapeSettings compound;
+    //                rPhys.m_hasColliders.insert(weldEnt);
+    //                // Collect all colliders from hierarchy.
+    //                compound_collect_recurse( rPhys, rJolt, rBasic, weldEnt, Matrix4{}, compound );
+    //                Ref<Shape> compoundShape = compound.Create().Get();
+
+
+
+    rFB.task()
+        .name       ("Add Jolt physics shapes to chunks")
+        .sync_with  ({terrain.pl.surfaceChanges(UseOrRun), terrain.pl.chunkMesh(Ready), terrain.pl.terrainFrame(Ready),  terrain.pl.skeleton(Ready),  jolt.pl.joltBody(New), phys.pl.physUpdate(Done)})
+        .args       ({           comScn.di.basic,         terrain.di.terrain,                 terrain.di.terrainFrame, phys.di.phys,     terrainJolt.di.terrainJolt,         jolt.di.jolt   })
+        .func       ([] (ACtxBasic const &rBasic, ACtxTerrain const& terrain, ACtxTerrainFrame const& terrainFrame, ACtxPhysics& rPhys, ACtxTerrainJolt &rTerrainJolt, ACtxJoltWorld& rJolt) noexcept
+    {
+        //return;
+        //if (terrain.scratchpad.surfaceAdded.empty()) { return; }
+
+        JPH::BodyInterface &bodyInterface = rJolt.m_physicsSystem.GetBodyInterface();
+
+        auto *pShape = static_cast<JPH::MutableCompoundShape*>(rTerrainJolt.shape.GetPtr());
+
+
+        JPH::Vec3 prevCOM = pShape->GetCenterOfMass();
+
+        JPH::BodyID joltBodyId = BToJolt(rTerrainJolt.bodyId);
+
+        float const scale = std::exp2(float(-terrain.skData.precision));
+
+        {
+            JPH::BodyLockWrite lock(rJolt.m_physicsSystem.GetBodyLockInterface(), joltBodyId);
+
+            // possible hack/optimization: reduce number of times CalculateSubShapeBounds is called
+            // auto &rSubShapes = const_cast<JPH::CompoundShape::SubShapes&>(pShape->GetSubShapes());
+
+            auto const &rSubShapes = const_cast<JPH::CompoundShape::SubShapes&>(pShape->GetSubShapes());
+
+            for (std::size_t i = rSubShapes.size() - 1; i != ~std::size_t(0); --i)
+            {
+                auto const sktri = SkTriId::from_index(rSubShapes[i].mUserData);
+                if (terrain.scratchpad.surfaceRemoved.contains(sktri))
+                {
+                    pShape->RemoveShape(i);
+                }
+            }
+
+            for (SkTriId sktriId : terrain.scratchpad.surfaceAdded)
+            {
+                SkeletonTriangle const& sktri = terrain.skeleton.tri_at(sktriId);
+
+                if (terrain.skeleton.tri_group_at(tri_group_id(sktriId)).depth != terrain.skeleton.levelMax)
+                {
+                    continue;
+                }
+
+                auto const sharedVrtxs = std::array<SharedVrtxId, 3>{{
+                        terrain.skChunks.m_skVrtxToShared[sktri.vertices[0]],
+                        terrain.skChunks.m_skVrtxToShared[sktri.vertices[1]],
+                        terrain.skChunks.m_skVrtxToShared[sktri.vertices[2]]}};
+
+                auto posView = terrain.chunkGeom.vbufPositions.view_const(terrain.chunkGeom.vrtxBuffer, terrain.chunkInfo.vrtxTotal);
+
+                JPH::Vec3 const vrtx0    = Vec3MagnumToJolt(posView[terrain.chunkInfo.vbufSharedOffset + sharedVrtxs[0].value]);
+                JPH::Vec3 const vrtx1Rel = Vec3MagnumToJolt(posView[terrain.chunkInfo.vbufSharedOffset + sharedVrtxs[1].value]) - vrtx0;
+                JPH::Vec3 const vrtx2Rel = Vec3MagnumToJolt(posView[terrain.chunkInfo.vbufSharedOffset + sharedVrtxs[2].value]) - vrtx0;
+
+
+
+                float const scaleInv = std::exp2(-float(terrain.skData.precision));
+
+                constexpr float thickness = 24.0f;
+
+                // 0 + vrtx1Rel-vrtx0 + vrtx2Rel-vrtx0 = -vrtx0
+                //
+                JPH::Vec3 const center = Vec3MagnumToJolt(Vector3(terrainFrame.position) * scaleInv)
+                                       + (vrtx1Rel + vrtx2Rel) / 3.0f;
+
+                JPH::Vec3 down = -center.Normalized() * thickness;
+
+                std::array<JPH::Vec3, 6> const points{{
+                    JPH::Vec3(0.0f, 0.0f, 0.0f), vrtx1Rel, vrtx2Rel,
+                    down, vrtx1Rel + down, vrtx2Rel + down
+                }};
+
+                JPH::ConvexHullShapeSettings 开门的是发难(points.data(), points.size());
+
+                pShape->AddShape(vrtx0, JPH::Quat::sIdentity(), 开门的是发难.Create().Get(), sktriId.value);
+            }
+        }
+
+        bodyInterface.NotifyShapeChanged(joltBodyId, prevCOM, false, JPH::EActivation::Activate);
+
+
+    });
+
+}); // ftrPhysicsShapesJolt
 
 } // namespace adera
 

@@ -85,5 +85,9 @@ extern osp::fw::FeatureDef const ftrVehicleSpawnJolt;
  */
 extern osp::fw::FeatureDef const ftrRocketThrustJolt;
 
+
+extern osp::fw::FeatureDef const ftrTerrainJolt;
+
+
 } // namespace adera
 
