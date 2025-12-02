@@ -65,12 +65,23 @@ using osp::input::UserInputHandler;
 namespace testapp
 {
 
+struct TempThig
+{
+    TempThig(osp::input::UserInputHandler &rInput)
+     : controls(&rInput)
+     , reset(controls.button_subscribe("reset"))
+     { }
+    osp::input::ControlSubscriber controls;
+    osp::input::EButtonControlIndex reset;
+};
+
 FeatureDef const ftrMagnum = feature_def("Magnum", [] (
         FeatureBuilder              &rFB,
         Implement<FIMagnum>         magnum,
         DependOn<FICleanupContext>  cleanup,
         DependOn<FIWindowApp>       windowApp,
         DependOn<FIMainApp>         mainApp,
+        DependOn<FICinREPL> cinREPL, // temporary
         entt::any                   userData)
 {
     auto &rUserInput = rFB.data_get<UserInputHandler>(windowApp.di.userInput);
@@ -88,6 +99,20 @@ FeatureDef const ftrMagnum = feature_def("Magnum", [] (
     auto &rRenderGl     = rFB.data_emplace<RenderGL>         (magnum.di.renderGl);
 
     SysRenderGL::setup_context(rRenderGl);
+
+    auto &rTemp     = rFB.data_emplace<TempThig>         (magnum.di.temp, rUserInput);
+
+    rFB.task()
+        .name ("reset")
+        .sync_with  ({cinREPL.pl.cinLines(Modify_), windowApp.pl.inputs(Run)})
+        .args       ({    windowApp.di.userInput,  magnum.di.temp, cinREPL.di.cinLines})
+        .func       ([] (UserInputHandler &rUserInput, TempThig &rTmp, std::vector<std::string> &rCinLines) noexcept
+    {
+        if (rUserInput.button_state(rTmp.reset).m_triggered)
+        {
+            rCinLines.push_back("flight");
+        }
+    });
 
     rFB.task()
         .name       ("Clean up Magnum renderer")

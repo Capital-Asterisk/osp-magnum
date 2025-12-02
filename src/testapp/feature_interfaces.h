@@ -43,6 +43,7 @@ struct FIMagnum {
     struct DataIds {
         DataId magnumApp;
         DataId renderGl;
+        DataId temp;
     };
 
     struct Pipelines {

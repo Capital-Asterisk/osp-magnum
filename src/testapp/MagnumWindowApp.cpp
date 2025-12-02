@@ -55,6 +55,7 @@ MagnumWindowApp::MagnumWindowApp(const Application::Arguments& arguments,
     // temporary fixed 60fps. No physics interpolation or anything is implemented yet
     setSwapInterval(1);
     setMinimalLoopPeriod(16);
+    setCursor(Cursor::HiddenLocked);
     m_timeline.start();
 }
 

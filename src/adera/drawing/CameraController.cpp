@@ -51,7 +51,7 @@ adera::CameraCommands adera::ACtxCameraButtons::read_button_inputs(float deltaTi
               - float(m_controls.button_held(m_btnRotUp)) ) * keyRotDelta;
 
     // Mouse rotation
-    if (m_controls.button_held(m_btnOrbit))
+    if (true || m_controls.button_held(m_btnOrbit))
     {
         // 1 degrees per step
         constexpr Rad const mouseRotDelta = 1.0_degf;
